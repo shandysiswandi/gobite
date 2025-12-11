@@ -1,0 +1,10 @@
+tz: "Asia/Jakarta"
+
+server.address.http: 0.0.0.0:8080
+
+database.dsn: "postgres://user:password@localhost:5432/gobite?sslmode=disable"
+
+password.cost: 8
+password.secret: secret
+
+modules.auth.enabled: true
