@@ -2,9 +2,13 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"log/slog"
+	"strconv"
 
 	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
@@ -12,6 +16,29 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
+
+type repoCache interface {
+	SaveTokensID(ctx context.Context, acID, refID string) error
+	DeleteTokensID(ctx context.Context, acID, refID string) error
+	IsTokenIDExist(ctx context.Context, id string) (bool, error)
+	RotateTokensID(ctx context.Context, oldRefID, newAcID, newRefID string) error
+}
+
+type repoDB interface {
+	// users
+	UserGetByEmail(ctx context.Context, email string) (*domain.User, error)
+	UserGetByID(ctx context.Context, id int64) (*domain.User, error)
+
+	// user_credentials
+	UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error)
+	UserCredentialUpdate(ctx context.Context, userID int64, hash string) error
+
+	// user + user_credentials (transaction)
+	UserRegistration(ctx context.Context, user domain.User, hash string) error
+
+	// mfa_factors
+	MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.MfaFactor, error)
+}
 
 type Usecase struct {
 	repoDB    repoDB
@@ -61,25 +88,87 @@ func NewAuth(dep Dependency) *Usecase {
 	}
 }
 
-type repoCache interface {
-	SaveTokensID(ctx context.Context, acID, refID string) error
-	DeleteTokensID(ctx context.Context, acID, refID string) error
-	IsTokenIDExist(ctx context.Context, id string) (bool, error)
-	RotateTokensID(ctx context.Context, oldRefID, newAcID, newRefID string) error
+func (s *Usecase) getUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+	user, err := s.repoDB.UserGetByEmail(ctx, email)
+	if errors.Is(err, pkgerror.ErrNotFound) {
+		slog.WarnContext(ctx, "user account not found")
+		return nil, pkgerror.ErrAuthUnauthenticated
+	}
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to repo get user by email", "error", err)
+		return nil, err
+	}
+
+	if err := s.ensureUserActive(ctx, user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
 }
 
-type repoDB interface {
-	// users
-	UserGetByEmail(ctx context.Context, email string) (*domain.User, error)
-	UserGetByID(ctx context.Context, id int64) (*domain.User, error)
+func (s *Usecase) getUserByID(ctx context.Context, userID int64) (*domain.User, error) {
+	user, err := s.repoDB.UserGetByID(ctx, userID)
+	if errors.Is(err, pkgerror.ErrNotFound) {
+		slog.WarnContext(ctx, "user account not found", "user_id", userID)
+		return nil, pkgerror.ErrAuthUnauthenticated
+	}
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to repo get user by id", "user_id", userID, "error", err)
+		return nil, err
+	}
 
-	// user_credentials
-	UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error)
-	UserCredentialUpdate(ctx context.Context, userID int64, hash string) error
+	if err := s.ensureUserActive(ctx, user); err != nil {
+		return nil, err
+	}
 
-	// user + user_credentials (transaction)
-	UserRegistration(ctx context.Context, user domain.User, hash string) error
+	return user, nil
+}
 
-	// mfa_factors
-	MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.MfaFactor, error)
+func (s *Usecase) ensureUserActive(ctx context.Context, user *domain.User) error {
+	if user.Status == domain.UserStatusUnverified {
+		slog.WarnContext(ctx, "user not verified", "user_id", user.ID)
+		return pkgerror.ErrAuthNotVerified
+	}
+
+	if user.Status == domain.UserStatusBanned {
+		slog.WarnContext(ctx, "user account banned", "user_id", user.ID)
+		return pkgerror.ErrAuthBanned
+	}
+
+	return nil
+}
+
+func (s *Usecase) getCredential(ctx context.Context, userID int64) (*domain.UserCredential, error) {
+	userCred, err := s.repoDB.UserCredentialGetByUserID(ctx, userID)
+	if errors.Is(err, pkgerror.ErrNotFound) {
+		slog.WarnContext(ctx, "user credential not found", "user_id", userID)
+		return nil, pkgerror.ErrAuthUnauthenticated
+	}
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to repo get user credential by user_id", "user_id", userID, "error", err)
+		return nil, err
+	}
+
+	return userCred, nil
+}
+
+func (s *Usecase) issueTokens(ctx context.Context, user *domain.User) (acToken, acJTI, refToken, refJTI string, err error) {
+	subject := strconv.FormatInt(user.ID, 10)
+
+	acToken, acJTI, err = s.jwtAccessToken.Generate(subject, pkgjwt.AccessTokenPayload{
+		UserID: subject,
+		Email:  user.Email,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to generate access jwt token", "user_id", user.ID, "error", err)
+		return "", "", "", "", err
+	}
+
+	refToken, refJTI, err = s.jwtRefreshToken.Generate(subject, pkgjwt.RefreshTokenPayload{Message: "hack me"})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to generate refresh jwt token", "user_id", user.ID, "error", err)
+		return "", "", "", "", err
+	}
+
+	return acToken, acJTI, refToken, refJTI, nil
 }

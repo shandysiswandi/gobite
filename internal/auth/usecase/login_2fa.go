@@ -2,13 +2,11 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"strconv"
 
 	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 )
 
 func (s *Usecase) Login2FA(ctx context.Context, in domain.Login2FAInput) (*domain.Login2FAOutput, error) {
@@ -28,24 +26,9 @@ func (s *Usecase) Login2FA(ctx context.Context, in domain.Login2FAInput) (*domai
 		return nil, pkgerror.ErrUnauthenticated
 	}
 
-	user, err := s.repoDB.UserGetByID(ctx, userID)
-	if errors.Is(err, pkgerror.ErrNotFound) {
-		slog.WarnContext(ctx, "user account not found", "user_id", userID)
-		return nil, pkgerror.ErrUnauthenticated
-	}
+	user, err := s.getUserByID(ctx, userID)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to repo get user by id", "user_id", userID, "error", err)
 		return nil, err
-	}
-
-	if user.Status == domain.UserStatusUnverified {
-		slog.WarnContext(ctx, "user not verified", "user_id", userID)
-		return nil, pkgerror.ErrAuthNotVerified
-	}
-
-	if user.Status == domain.UserStatusBanned {
-		slog.WarnContext(ctx, "user account banned", "user_id", userID)
-		return nil, pkgerror.ErrAuthBanned
 	}
 
 	mfaFacs, err := s.repoDB.MfaFactorGetByUserID(ctx, user.ID)
@@ -88,20 +71,8 @@ func (s *Usecase) Login2FA(ctx context.Context, in domain.Login2FAInput) (*domai
 		return nil, pkgerror.ErrUnauthenticated
 	}
 
-	subject := strconv.FormatInt(user.ID, 10)
-
-	acToken, acJTI, err := s.jwtAccessToken.Generate(subject, pkgjwt.AccessTokenPayload{
-		UserID: subject,
-		Email:  user.Email,
-	})
+	acToken, acJTI, refToken, refJTI, err := s.issueTokens(ctx, user)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to generate access jwt token", "user_id", user.ID, "error", err)
-		return nil, err
-	}
-
-	refToken, refJTI, err := s.jwtRefreshToken.Generate(subject, pkgjwt.RefreshTokenPayload{Message: "hack me"})
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to generate refresh jwt token", "user_id", user.ID, "error", err)
 		return nil, err
 	}
 
