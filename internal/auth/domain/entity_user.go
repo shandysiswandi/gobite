@@ -16,6 +16,19 @@ func (us UserStatus) Value() int16 {
 	return int16(us)
 }
 
+func (us UserStatus) String() string {
+	switch us {
+	case UserStatusActive:
+		return "Active"
+	case UserStatusBanned:
+		return "Banned"
+	case UserStatusUnverified:
+		return "Unverified"
+	default:
+		return "Unknown"
+	}
+}
+
 type User struct {
 	ID        int64
 	Email     string

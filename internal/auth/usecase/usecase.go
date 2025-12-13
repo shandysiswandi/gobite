@@ -54,6 +54,7 @@ func NewAuth(dep Dependency) *Usecase {
 		hash:            dep.Hash,
 		uid:             dep.UID,
 		totp:            dep.Totp,
+		clock:           dep.Clock,
 		jwtTempToken:    dep.JWTTempToken,
 		jwtAccessToken:  dep.JWTAccessToken,
 		jwtRefreshToken: dep.JWTRefreshToken,

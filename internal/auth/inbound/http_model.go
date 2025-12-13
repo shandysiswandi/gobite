@@ -49,6 +49,14 @@ type ChangePasswordResponse struct {
 	Success bool `json:"success"`
 }
 
+type ProfileResponse struct {
+	ID        int64  `json:"id"`
+	Email     string `json:"email"`
+	FullName  string `json:"full_name"`
+	AvatarURL string `json:"avatar_url"`
+	Status    string `json:"status"`
+}
+
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }

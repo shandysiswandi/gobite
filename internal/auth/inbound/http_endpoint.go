@@ -131,3 +131,19 @@ func (h *HTTPEndpoint) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		RefreshToken: resp.RefreshToken,
 	})
 }
+
+func (h *HTTPEndpoint) Profile(w http.ResponseWriter, r *http.Request) {
+	resp, err := h.uc.Profile(r.Context(), domain.ProfileInput{})
+	if err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	pkgrouter.Response(w, ProfileResponse{
+		ID:        resp.ID,
+		Email:     resp.Email,
+		FullName:  resp.FullName,
+		AvatarURL: resp.AvatarURL,
+		Status:    resp.Status,
+	})
+}
