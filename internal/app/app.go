@@ -12,6 +12,8 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkglog"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
@@ -21,11 +23,13 @@ type App struct {
 	config pkgconfig.Config
 
 	// libraries
+	goroutine       *pkgroutine.Manager
 	validator       pkgvalidator.Validator
 	clock           pkgclock.Clocker
 	hash            pkghash.Hash
 	uid             pkguid.NumberID
 	uuid            pkguid.StringID
+	mail            pkgmail.Mail
 	jwtTempToken    pkgjwt.JWT[map[string]any]
 	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
 	jwtRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
@@ -52,6 +56,7 @@ func New() *App {
 	app.initJWT()
 	app.initDatabase()
 	app.initCache()
+	app.initMail()
 	app.initHTTPServer()
 	app.initModules()
 	app.initClosers()

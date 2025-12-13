@@ -18,6 +18,7 @@ func (a *App) initModules() {
 			Validator:       a.validator,
 			Router:          a.router,
 			DBConn:          a.dbConn,
+			Mail:            a.mail,
 			CacheConn:       a.cacheConn,
 			JWTTempToken:    a.jwtTempToken,
 			JWTAccessToken:  a.jwtAccessToken,

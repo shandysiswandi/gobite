@@ -34,6 +34,15 @@ services:
       timeout: 5s
       retries: 5
 
+  mailhog:
+    image: mailhog/mailhog:v1.0.1
+    pull_policy: missing
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - gobite-network
+
 volumes:
   postgres_gobite_data:
   redis_gobite_data:

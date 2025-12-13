@@ -6,6 +6,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
@@ -13,10 +14,11 @@ import (
 type Usecase struct {
 	repoDB    repoDB
 	repoCache repoCache
+	mail      pkgmail.Mail
 
 	validator pkgvalidator.Validator
 	hash      pkghash.Hash
-	uid       pkguid.StringID
+	uid       pkguid.NumberID
 
 	jwtTempToken    pkgjwt.JWT[map[string]any]
 	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -26,10 +28,11 @@ type Usecase struct {
 type Dependency struct {
 	RepoDB    repoDB
 	RepoCache repoCache
+	Mail      pkgmail.Mail
 
 	Validator pkgvalidator.Validator
 	Hash      pkghash.Hash
-	UID       pkguid.StringID
+	UID       pkguid.NumberID
 
 	JWTTempToken    pkgjwt.JWT[map[string]any]
 	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -40,6 +43,7 @@ func NewAuth(dep Dependency) *Usecase {
 	return &Usecase{
 		repoDB:          dep.RepoDB,
 		repoCache:       dep.RepoCache,
+		mail:            dep.Mail,
 		validator:       dep.Validator,
 		hash:            dep.Hash,
 		uid:             dep.UID,
@@ -59,6 +63,9 @@ type repoDB interface {
 
 	// user_credentials
 	UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error)
+
+	// user + user_credentials (transaction)
+	UserRegistration(ctx context.Context, user domain.User, hash string) error
 
 	// mfa_factors
 	MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.MfaFactor, error)

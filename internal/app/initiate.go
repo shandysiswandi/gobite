@@ -13,7 +13,9 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
@@ -39,6 +41,7 @@ func (a *App) initConfig() {
 func (a *App) initLibraries() {
 	a.clock = pkgclock.New()
 	a.uuid = pkguid.NewUUID()
+	a.goroutine = pkgroutine.NewManager(100)
 	a.hash = pkghash.NewBcrypt(int(a.config.GetInt("password.cost")), a.config.GetString("password.secret"))
 
 	validator, err := pkgvalidator.NewV10Validator()
@@ -133,6 +136,22 @@ func (a *App) initCache() {
 	}
 
 	a.cacheConn = rdb
+}
+
+func (a *App) initMail() {
+	mail, err := pkgmail.NewSMTP(pkgmail.SMTPConfig{
+		Host:     a.config.GetString("mail.host"),
+		Port:     int(a.config.GetInt("mail.port")),
+		Username: a.config.GetString("mail.username"),
+		Password: a.config.GetString("mail.password"),
+		From:     a.config.GetString("mail.from"),
+	})
+	if err != nil {
+		slog.Error("failed to init mail", "error", err)
+		os.Exit(1)
+	}
+
+	a.mail = mail
 }
 
 func (a *App) initHTTPServer() {

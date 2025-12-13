@@ -12,6 +12,10 @@ const (
 	UserStatusBanned
 )
 
+func (us UserStatus) Value() int16 {
+	return int16(us)
+}
+
 type User struct {
 	ID        int64
 	Email     string

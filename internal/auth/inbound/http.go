@@ -16,9 +16,11 @@ func RegisterHTTPEndpoint(r chi.Router, uc usecase) {
 
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/login", end.Login)
+		r.Post("/register", end.Register)
 	})
 }
 
 type usecase interface {
 	Login(ctx context.Context, in domain.LoginInput) (*domain.LoginOutput, error)
+	Register(ctx context.Context, in domain.RegisterInput) (*domain.RegisterOutput, error)
 }

@@ -38,12 +38,15 @@ func (a *App) Start() <-chan struct{} {
 }
 
 func (a *App) Stop(ctx context.Context) {
-	// close resources
 	for name, closer := range a.closerFn {
 		if err := closer(ctx); err != nil {
 			slog.ErrorContext(ctx, "failed to close resources", "name", name, "error", err)
 		}
 	}
 
+	slog.InfoContext(ctx, "waiting for all goroutine to finish")
+	if err := a.goroutine.Wait(); err != nil {
+		slog.ErrorContext(ctx, "error from goroutines executions", "error", err)
+	}
 	slog.InfoContext(ctx, "all goroutines have finished successfully")
 }

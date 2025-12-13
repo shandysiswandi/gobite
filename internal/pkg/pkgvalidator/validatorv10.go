@@ -2,19 +2,28 @@ package pkgvalidator
 
 import (
 	"errors"
+	"log/slog"
+	"regexp"
 
 	"github.com/go-playground/locales/en"
-	"github.com/go-playground/locales/id"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	enTranslations "github.com/go-playground/validator/v10/translations/en"
-	idTranslations "github.com/go-playground/validator/v10/translations/id"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgstrcase"
 )
 
+var (
+	reLength = regexp.MustCompile(`^[^\s]{8,72}$`)
+	reUpper  = regexp.MustCompile(`[A-Z]`)
+	reLower  = regexp.MustCompile(`[a-z]`)
+	reDigit  = regexp.MustCompile(`\d`)
+)
+
+var ErrTranslatorNotFound = errors.New("translator not found")
+
 type V10Validator struct {
-	validate    *validator.Validate
-	translators map[string]ut.Translator
+	validate   *validator.Validate
+	translator ut.Translator
 }
 
 type V10ValidationError map[string]string
@@ -28,25 +37,24 @@ func (vs V10ValidationError) Values() map[string]string {
 }
 
 func NewV10Validator() (*V10Validator, error) {
-	enLang := en.New()
-	idLang := id.New()
-
 	validate := validator.New(validator.WithRequiredStructEnabled())
-	uni := ut.New(enLang, enLang, idLang)
 
-	enTrans, _ := uni.GetTranslator("en")
-	idTrans, _ := uni.GetTranslator("id")
+	enLang := en.New()
+	uni := ut.New(enLang, enLang)
+	enTrans, ok := uni.GetTranslator("en")
+	if !ok {
+		return nil, ErrTranslatorNotFound
+	}
 
 	if err := enTranslations.RegisterDefaultTranslations(validate, enTrans); err != nil {
 		return nil, err
 	}
-	if err := idTranslations.RegisterDefaultTranslations(validate, idTrans); err != nil {
-		return nil, err
-	}
+
+	v10CustomValidation(validate, enTrans)
 
 	return &V10Validator{
-		validate:    validate,
-		translators: map[string]ut.Translator{"en": enTrans, "id": idTrans},
+		validate:   validate,
+		translator: enTrans,
 	}, nil
 }
 
@@ -59,11 +67,51 @@ func (v *V10Validator) Validate(data any) error {
 
 		errV10 := make(V10ValidationError)
 		for _, fe := range validateErrs {
-			errV10[pkgstrcase.ToLowerSnake(fe.Field())] = fe.Translate(v.translators["en"])
+			errV10[pkgstrcase.ToLowerSnake(fe.Field())] = fe.Translate(v.translator)
 		}
 
 		return errV10
 	}
 
 	return nil
+}
+
+//nolint:errcheck,gosec,forcetypeassert // make linter silent
+func v10CustomValidation(validate *validator.Validate, enTrans ut.Translator) {
+	validate.RegisterValidation("password", func(fl validator.FieldLevel) bool {
+		p, ok := fl.Field().Interface().(string)
+		if !ok {
+			return false
+		}
+
+		return reLength.MatchString(p) &&
+			reUpper.MatchString(p) &&
+			reLower.MatchString(p) &&
+			reDigit.MatchString(p)
+	})
+
+	validate.RegisterTranslation("password", enTrans,
+		func(ut ut.Translator) error {
+			return ut.Add("password", "{0} must be 8-72 chars, include upper, lower, and number", false)
+		},
+		func(ut ut.Translator, fe validator.FieldError) string {
+			t, _ := ut.T(fe.Tag(), fe.Field())
+			return t
+		},
+	)
+
+	validate.RegisterTranslation("alphaspace", enTrans,
+		func(ut ut.Translator) error {
+			return ut.Add("alphaspace", "{0} can contain only letters and spaces", false)
+		},
+		func(ut ut.Translator, fe validator.FieldError) string {
+			t, err := ut.T(fe.Tag(), fe.Field())
+			if err != nil {
+				slog.Warn("warning: error translating", "FieldError", fe, "error", err)
+				return fe.(error).Error()
+			}
+
+			return t
+		},
+	)
 }

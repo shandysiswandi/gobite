@@ -23,7 +23,7 @@ type MfaFactorGetByUserIDParams struct {
 }
 
 // ----- ----- ----- ----- -----
-//
+// mfa_factors table
 // ----- ----- ----- ----- -----
 func (q *Queries) MfaFactorGetByUserID(ctx context.Context, arg MfaFactorGetByUserIDParams) ([]MfaFactor, error) {
 	rows, err := q.db.Query(ctx, mfaFactorGetByUserID, arg.UserID, arg.IsVerified)
@@ -55,6 +55,45 @@ func (q *Queries) MfaFactorGetByUserID(ctx context.Context, arg MfaFactorGetByUs
 	return items, nil
 }
 
+const userCreate = `-- name: UserCreate :exec
+INSERT INTO users (id, email, full_name, avatar_url, status)
+VALUES ($1, $2, $3, $4, $5)
+`
+
+type UserCreateParams struct {
+	ID        int64
+	Email     string
+	FullName  string
+	AvatarUrl string
+	Status    int16
+}
+
+func (q *Queries) UserCreate(ctx context.Context, arg UserCreateParams) error {
+	_, err := q.db.Exec(ctx, userCreate,
+		arg.ID,
+		arg.Email,
+		arg.FullName,
+		arg.AvatarUrl,
+		arg.Status,
+	)
+	return err
+}
+
+const userCredentialCreate = `-- name: UserCredentialCreate :exec
+INSERT INTO user_credentials (user_id, password)
+VALUES ($1, $2)
+`
+
+type UserCredentialCreateParams struct {
+	UserID   int64
+	Password string
+}
+
+func (q *Queries) UserCredentialCreate(ctx context.Context, arg UserCredentialCreateParams) error {
+	_, err := q.db.Exec(ctx, userCredentialCreate, arg.UserID, arg.Password)
+	return err
+}
+
 const userCredentialGetByUserID = `-- name: UserCredentialGetByUserID :one
 
 SELECT user_id, password, updated_at FROM user_credentials 
@@ -63,7 +102,7 @@ WHERE
 `
 
 // ----- ----- ----- ----- -----
-//
+// user_credentials table
 // ----- ----- ----- ----- -----
 func (q *Queries) UserCredentialGetByUserID(ctx context.Context, userID int64) (UserCredential, error) {
 	row := q.db.QueryRow(ctx, userCredentialGetByUserID, userID)
@@ -73,12 +112,16 @@ func (q *Queries) UserCredentialGetByUserID(ctx context.Context, userID int64) (
 }
 
 const userGetByEmail = `-- name: UserGetByEmail :one
+
 SELECT id, email, full_name, avatar_url, status, deleted_at, created_at, updated_at FROM users 
 WHERE 
     email = $1 AND 
     deleted_at IS NULL
 `
 
+// ----- ----- ----- ----- -----
+// users table
+// ----- ----- ----- ----- -----
 func (q *Queries) UserGetByEmail(ctx context.Context, email string) (User, error) {
 	row := q.db.QueryRow(ctx, userGetByEmail, email)
 	var i User

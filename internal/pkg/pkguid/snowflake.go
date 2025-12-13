@@ -37,6 +37,6 @@ func NewSnowflake() (*Snowflake, error) {
 	return &Snowflake{node: node}, nil
 }
 
-func (s *Snowflake) Generate() uint64 {
-	return uint64(s.node.Generate().Int64())
+func (s *Snowflake) Generate() int64 {
+	return s.node.Generate().Int64()
 }

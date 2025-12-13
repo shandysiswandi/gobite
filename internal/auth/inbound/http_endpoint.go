@@ -31,3 +31,23 @@ func (h *HTTPEndpoint) Login(w http.ResponseWriter, r *http.Request) {
 		PreAuthToken: resp.PreAuthToken,
 	})
 }
+
+func (h *HTTPEndpoint) Register(w http.ResponseWriter, r *http.Request) {
+	var req RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	resp, err := h.uc.Register(r.Context(), domain.RegisterInput{
+		Email:    req.Email,
+		Password: req.Password,
+		FullName: req.FullName,
+	})
+	if err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	pkgrouter.Response(w, RegisterResponse{IsNeedVerify: resp.IsNeedVerify})
+}

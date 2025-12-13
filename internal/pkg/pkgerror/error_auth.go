@@ -18,4 +18,7 @@ var (
 	// ErrAuthMfaRequired indicates that the user must complete
 	// a multi-factor authentication challenge before continuing.
 	ErrAuthMfaRequired = errors.New("multi-factor authentication required")
+
+	// ErrAuthEmailUsed indicates that the email is already registered.
+	ErrAuthEmailUsed = errors.New("email is already registered")
 )

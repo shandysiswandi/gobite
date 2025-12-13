@@ -73,7 +73,10 @@ func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.Logi
 		}, nil
 	}
 
-	acToken, acJTI, err := s.jwtAccessToken.Generate(strID, pkgjwt.AccessTokenPayload{Email: user.Email})
+	acToken, acJTI, err := s.jwtAccessToken.Generate(strID, pkgjwt.AccessTokenPayload{
+		UserID: strID,
+		Email:  user.Email,
+	})
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to generate access jwt token", "user_id", user.ID, "error", err)
 		return nil, err

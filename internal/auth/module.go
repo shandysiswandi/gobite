@@ -12,6 +12,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
@@ -19,6 +20,7 @@ import (
 type Dependency struct {
 	DBConn          *pgxpool.Pool
 	CacheConn       *redis.Client
+	Mail            pkgmail.Mail
 	Config          pkgconfig.Config
 	UID             pkguid.NumberID
 	UUID            pkguid.StringID
@@ -38,9 +40,10 @@ func New(dep Dependency) error {
 	uc := usecase.NewAuth(usecase.Dependency{
 		RepoDB:          dbAuth,
 		RepoCache:       cacheAuth,
+		Mail:            dep.Mail,
 		Validator:       dep.Validator,
 		Hash:            dep.Hash,
-		UID:             dep.UUID,
+		UID:             dep.UID,
 		JWTTempToken:    dep.JWTTempToken,
 		JWTAccessToken:  dep.JWTAccessToken,
 		JWTRefreshToken: dep.JWTRefreshToken,

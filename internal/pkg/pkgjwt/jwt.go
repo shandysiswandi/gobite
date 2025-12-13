@@ -46,7 +46,8 @@ type Config struct {
 
 // Access token payload
 type AccessTokenPayload struct {
-	Email string `json:"email"`
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
 }
 
 // Refresh token payload
