@@ -1,5 +1,10 @@
 package domain
 
-type ChangePasswordInput struct{}
+type ChangePasswordInput struct {
+	CurrentPassword string `validate:"required"`
+	NewPassword     string `validate:"required,password"`
+}
 
-type ChangePasswordOutput struct{}
+type ChangePasswordOutput struct {
+	Success bool
+}

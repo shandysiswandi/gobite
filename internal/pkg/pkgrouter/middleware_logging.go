@@ -12,11 +12,13 @@ import (
 
 //nolint:gochecknoglobals // global for fast reuse
 var sensitiveKeys = map[string]struct{}{
-	"password":      {},
-	"access_token":  {},
-	"refresh_token": {},
-	"authorization": {},
-	"cookie":        {},
+	"password":         {},
+	"new_password":     {},
+	"current_password": {},
+	"access_token":     {},
+	"refresh_token":    {},
+	"authorization":    {},
+	"cookie":           {},
 }
 
 func maskHeaders(headers http.Header) http.Header {

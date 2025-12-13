@@ -19,6 +19,7 @@ func RegisterHTTPEndpoint(r chi.Router, uc usecase) {
 		r.Post("/login-2fa", end.Login2FA)
 		r.Post("/register", end.Register)
 		r.Post("/logout", end.Logout)
+		r.Post("/change-password", end.ChangePassword)
 		r.Post("/refresh-token", end.RefreshToken)
 	})
 }
@@ -28,5 +29,6 @@ type usecase interface {
 	Login2FA(ctx context.Context, in domain.Login2FAInput) (*domain.Login2FAOutput, error)
 	Register(ctx context.Context, in domain.RegisterInput) (*domain.RegisterOutput, error)
 	Logout(ctx context.Context, in domain.LogoutInput) (*domain.LogoutOutput, error)
+	ChangePassword(ctx context.Context, in domain.ChangePasswordInput) (*domain.ChangePasswordOutput, error)
 	RefreshToken(ctx context.Context, in domain.RefreshTokenInput) (*domain.RefreshTokenOutput, error)
 }

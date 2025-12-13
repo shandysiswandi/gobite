@@ -92,6 +92,25 @@ func (h *HTTPEndpoint) Logout(w http.ResponseWriter, r *http.Request) {
 	pkgrouter.Response(w, LogoutResponse{Success: resp.Success})
 }
 
+func (h *HTTPEndpoint) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	var req ChangePasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	resp, err := h.uc.ChangePassword(r.Context(), domain.ChangePasswordInput{
+		CurrentPassword: req.CurrentPassword,
+		NewPassword:     req.NewPassword,
+	})
+	if err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	pkgrouter.Response(w, ChangePasswordResponse{Success: resp.Success})
+}
+
 func (h *HTTPEndpoint) RefreshToken(w http.ResponseWriter, r *http.Request) {
 	var req RefreshTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -40,6 +40,15 @@ type LogoutResponse struct {
 	Success bool `json:"success"`
 }
 
+type ChangePasswordRequest struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password"`
+}
+
+type ChangePasswordResponse struct {
+	Success bool `json:"success"`
+}
+
 type RefreshTokenRequest struct {
 	RefreshToken string `json:"refresh_token"`
 }

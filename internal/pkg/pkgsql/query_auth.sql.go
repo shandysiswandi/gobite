@@ -111,6 +111,23 @@ func (q *Queries) UserCredentialGetByUserID(ctx context.Context, userID int64) (
 	return i, err
 }
 
+const userCredentialUpdate = `-- name: UserCredentialUpdate :exec
+UPDATE user_credentials 
+SET 
+    password = $1
+WHERE user_id = $2
+`
+
+type UserCredentialUpdateParams struct {
+	Password string
+	UserID   int64
+}
+
+func (q *Queries) UserCredentialUpdate(ctx context.Context, arg UserCredentialUpdateParams) error {
+	_, err := q.db.Exec(ctx, userCredentialUpdate, arg.Password, arg.UserID)
+	return err
+}
+
 const userGetByEmail = `-- name: UserGetByEmail :one
 
 SELECT id, email, full_name, avatar_url, status, deleted_at, created_at, updated_at FROM users 

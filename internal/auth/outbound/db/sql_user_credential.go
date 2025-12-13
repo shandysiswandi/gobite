@@ -29,3 +29,10 @@ func (s *SQL) UserCredentialGetByUserID(ctx context.Context, userID int64) (*dom
 
 	return userCredentialFromSQL(result), nil
 }
+
+func (s *SQL) UserCredentialUpdate(ctx context.Context, userID int64, hash string) error {
+	return s.query.UserCredentialUpdate(ctx, pkgsql.UserCredentialUpdateParams{
+		Password: hash,
+		UserID:   userID,
+	})
+}

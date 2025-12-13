@@ -31,6 +31,12 @@ WHERE
 INSERT INTO user_credentials (user_id, password)
 VALUES (@user_id, @password);
 
+-- name: UserCredentialUpdate :exec
+UPDATE user_credentials 
+SET 
+    password = @password
+WHERE user_id = @user_id;
+
 -- ----- ----- ----- ----- -----
 -- mfa_factors table
 -- ----- ----- ----- ----- -----

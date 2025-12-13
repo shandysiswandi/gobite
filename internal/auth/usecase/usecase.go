@@ -74,6 +74,7 @@ type repoDB interface {
 
 	// user_credentials
 	UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error)
+	UserCredentialUpdate(ctx context.Context, userID int64, hash string) error
 
 	// user + user_credentials (transaction)
 	UserRegistration(ctx context.Context, user domain.User, hash string) error
