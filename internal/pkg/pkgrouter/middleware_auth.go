@@ -12,6 +12,7 @@ import (
 var skipEndpoints = map[string]map[string]struct{}{
 	"POST": {
 		"/auth/login":         struct{}{},
+		"/auth/login-2fa":     struct{}{},
 		"/auth/register":      struct{}{},
 		"/auth/refresh-token": struct{}{},
 	},

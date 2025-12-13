@@ -8,12 +8,14 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/pquerna/otp"
 	"github.com/redis/go-redis/v9"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
@@ -55,6 +57,13 @@ func (a *App) initLibraries() {
 		slog.Error("failed to init uid number snowflake", "error", err)
 		os.Exit(1)
 	}
+
+	a.totp = pkgotp.NewTOTP(
+		a.config.GetString("totp.issuer"),
+		uint(a.config.GetInt("totp.period")),
+		uint(a.config.GetInt("totp.skew")),
+		otp.DigitsSix,
+	)
 
 	a.uid = snow
 	a.validator = validator

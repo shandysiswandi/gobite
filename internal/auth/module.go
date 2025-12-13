@@ -13,6 +13,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
@@ -26,6 +27,7 @@ type Dependency struct {
 	UUID            pkguid.StringID
 	Hash            pkghash.Hash
 	Clock           pkgclock.Clocker
+	Totp            pkgotp.OTP
 	Validator       pkgvalidator.Validator
 	JWTTempToken    pkgjwt.JWT[map[string]any]
 	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -44,6 +46,8 @@ func New(dep Dependency) error {
 		Validator:       dep.Validator,
 		Hash:            dep.Hash,
 		UID:             dep.UID,
+		Totp:            dep.Totp,
+		Clock:           dep.Clock,
 		JWTTempToken:    dep.JWTTempToken,
 		JWTAccessToken:  dep.JWTAccessToken,
 		JWTRefreshToken: dep.JWTRefreshToken,

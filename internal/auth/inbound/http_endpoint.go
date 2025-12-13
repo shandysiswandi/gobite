@@ -32,6 +32,28 @@ func (h *HTTPEndpoint) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (h *HTTPEndpoint) Login2FA(w http.ResponseWriter, r *http.Request) {
+	var req Login2FARequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	resp, err := h.uc.Login2FA(r.Context(), domain.Login2FAInput{
+		PreAuthToken: req.PreAuthToken,
+		Code:         req.Code,
+	})
+	if err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	pkgrouter.Response(w, Login2FAResponse{
+		AccessToken:  resp.AccessToken,
+		RefreshToken: resp.RefreshToken,
+	})
+}
+
 func (h *HTTPEndpoint) Register(w http.ResponseWriter, r *http.Request) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

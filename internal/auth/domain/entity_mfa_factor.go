@@ -15,3 +15,7 @@ type MfaFactor struct {
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
+
+const (
+	MfaTypeTOTP int16 = 1
+)

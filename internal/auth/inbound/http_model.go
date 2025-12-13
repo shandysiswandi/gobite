@@ -18,6 +18,16 @@ type LoginResponse struct {
 	RefreshToken string `json:"refresh_token,omitempty"`
 }
 
+type Login2FARequest struct {
+	PreAuthToken string `json:"pre_auth_token"`
+	Code         string `json:"code"`
+}
+
+type Login2FAResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type RegisterResponse struct {
 	IsNeedVerify bool `json:"is_need_verify"`
 }

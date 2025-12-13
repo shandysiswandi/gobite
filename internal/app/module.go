@@ -19,6 +19,7 @@ func (a *App) initModules() {
 			Router:          a.router,
 			DBConn:          a.dbConn,
 			Mail:            a.mail,
+			Totp:            a.totp,
 			CacheConn:       a.cacheConn,
 			JWTTempToken:    a.jwtTempToken,
 			JWTAccessToken:  a.jwtAccessToken,

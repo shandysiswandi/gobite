@@ -4,9 +4,11 @@ import (
 	"context"
 
 	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
@@ -19,6 +21,8 @@ type Usecase struct {
 	validator pkgvalidator.Validator
 	hash      pkghash.Hash
 	uid       pkguid.NumberID
+	totp      pkgotp.OTP
+	clock     pkgclock.Clocker
 
 	jwtTempToken    pkgjwt.JWT[map[string]any]
 	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -33,6 +37,8 @@ type Dependency struct {
 	Validator pkgvalidator.Validator
 	Hash      pkghash.Hash
 	UID       pkguid.NumberID
+	Totp      pkgotp.OTP
+	Clock     pkgclock.Clocker
 
 	JWTTempToken    pkgjwt.JWT[map[string]any]
 	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -47,6 +53,7 @@ func NewAuth(dep Dependency) *Usecase {
 		validator:       dep.Validator,
 		hash:            dep.Hash,
 		uid:             dep.UID,
+		totp:            dep.Totp,
 		jwtTempToken:    dep.JWTTempToken,
 		jwtAccessToken:  dep.JWTAccessToken,
 		jwtRefreshToken: dep.JWTRefreshToken,

@@ -13,6 +13,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkglog"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
@@ -30,6 +31,7 @@ type App struct {
 	uid             pkguid.NumberID
 	uuid            pkguid.StringID
 	mail            pkgmail.Mail
+	totp            pkgotp.OTP
 	jwtTempToken    pkgjwt.JWT[map[string]any]
 	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
 	jwtRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
