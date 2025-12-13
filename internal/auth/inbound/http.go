@@ -23,7 +23,7 @@ func RegisterHTTPEndpoint(r chi.Router, uc usecase) {
 	})
 
 	r.Route("/me", func(r chi.Router) {
-		r.Post("/change-password", end.ChangePassword)
+		r.Put("/change-password", end.ChangePassword)
 		r.Get("/profile", end.Profile)
 	})
 }
