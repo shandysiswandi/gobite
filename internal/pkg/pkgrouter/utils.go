@@ -20,7 +20,7 @@ func writeJSON(w http.ResponseWriter, data any, code int) {
 }
 
 func Response(w http.ResponseWriter, data any) {
-	writeJSON(w, successReponse{Message: "the request has been successfully", Data: data}, http.StatusOK)
+	writeJSON(w, successReponse{Message: "request has been successfully", Data: data}, http.StatusOK)
 }
 
 func ResponseError(w http.ResponseWriter, err error) {
@@ -42,6 +42,10 @@ func ResponseError(w http.ResponseWriter, err error) {
 		writeJSON(w, errorResponse{Message: "invalid request body"}, http.StatusBadRequest)
 	case errors.Is(err, pkgerror.ErrNotFound):
 		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusNotFound)
+	case errors.Is(err, pkgerror.ErrAuthUnauthenticated), errors.Is(err, pkgerror.ErrAuthMfaRequired):
+		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusUnauthorized)
+	case errors.Is(err, pkgerror.ErrAuthNotVerified), errors.Is(err, pkgerror.ErrAuthBanned):
+		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusForbidden)
 	default:
 		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusInternalServerError)
 	}

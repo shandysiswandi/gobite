@@ -11,14 +11,22 @@ import (
 
 const mfaFactorGetByUserID = `-- name: MfaFactorGetByUserID :many
 
-SELECT id, user_id, type, friendly_name, encrypted_secret, encryption_key_version, is_verified, created_at, updated_at FROM mfa_factors WHERE user_id = $1
+SELECT id, user_id, type, friendly_name, secret, key_version, is_verified, created_at, updated_at FROM mfa_factors 
+WHERE 
+    user_id = $1 AND 
+    is_verified = $2
 `
+
+type MfaFactorGetByUserIDParams struct {
+	UserID     int64
+	IsVerified bool
+}
 
 // ----- ----- ----- ----- -----
 //
 // ----- ----- ----- ----- -----
-func (q *Queries) MfaFactorGetByUserID(ctx context.Context, userID int64) ([]MfaFactor, error) {
-	rows, err := q.db.Query(ctx, mfaFactorGetByUserID, userID)
+func (q *Queries) MfaFactorGetByUserID(ctx context.Context, arg MfaFactorGetByUserIDParams) ([]MfaFactor, error) {
+	rows, err := q.db.Query(ctx, mfaFactorGetByUserID, arg.UserID, arg.IsVerified)
 	if err != nil {
 		return nil, err
 	}
@@ -31,8 +39,8 @@ func (q *Queries) MfaFactorGetByUserID(ctx context.Context, userID int64) ([]Mfa
 			&i.UserID,
 			&i.Type,
 			&i.FriendlyName,
-			&i.EncryptedSecret,
-			&i.EncryptionKeyVersion,
+			&i.Secret,
+			&i.KeyVersion,
 			&i.IsVerified,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -49,7 +57,9 @@ func (q *Queries) MfaFactorGetByUserID(ctx context.Context, userID int64) ([]Mfa
 
 const userCredentialGetByUserID = `-- name: UserCredentialGetByUserID :one
 
-SELECT user_id, hashed_password, password_last_changed_at FROM user_credentials WHERE user_id = $1
+SELECT user_id, password, updated_at FROM user_credentials 
+WHERE 
+    user_id = $1
 `
 
 // ----- ----- ----- ----- -----
@@ -58,12 +68,15 @@ SELECT user_id, hashed_password, password_last_changed_at FROM user_credentials 
 func (q *Queries) UserCredentialGetByUserID(ctx context.Context, userID int64) (UserCredential, error) {
 	row := q.db.QueryRow(ctx, userCredentialGetByUserID, userID)
 	var i UserCredential
-	err := row.Scan(&i.UserID, &i.HashedPassword, &i.PasswordLastChangedAt)
+	err := row.Scan(&i.UserID, &i.Password, &i.UpdatedAt)
 	return i, err
 }
 
 const userGetByEmail = `-- name: UserGetByEmail :one
-SELECT id, email, full_name, avatar_url, status, deleted_at, created_at, updated_at FROM users WHERE email = $1 AND deleted_at IS NULL
+SELECT id, email, full_name, avatar_url, status, deleted_at, created_at, updated_at FROM users 
+WHERE 
+    email = $1 AND 
+    deleted_at IS NULL
 `
 
 func (q *Queries) UserGetByEmail(ctx context.Context, email string) (User, error) {

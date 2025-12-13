@@ -11,33 +11,33 @@ import (
 type MfaBackupCode struct {
 	ID          int64
 	MfaFactorID int64
-	HashedCode  string
+	Code        string
 	IsUsed      bool
 }
 
 type MfaFactor struct {
-	ID                   int64
-	UserID               int64
-	Type                 int16
-	FriendlyName         pgtype.Text
-	EncryptedSecret      []byte
-	EncryptionKeyVersion int16
-	IsVerified           bool
-	CreatedAt            pgtype.Timestamptz
-	UpdatedAt            pgtype.Timestamptz
+	ID           int64
+	UserID       int64
+	Type         int16
+	FriendlyName string
+	Secret       []byte
+	KeyVersion   int16
+	IsVerified   bool
+	CreatedAt    pgtype.Timestamptz
+	UpdatedAt    pgtype.Timestamptz
 }
 
 type Permission struct {
 	ID          int64
 	Action      string
 	Resource    string
-	Description pgtype.Text
+	Description string
 }
 
 type Role struct {
 	ID          int64
 	Name        string
-	Description pgtype.Text
+	Description string
 }
 
 type RolePermission struct {
@@ -49,7 +49,7 @@ type User struct {
 	ID        int64
 	Email     string
 	FullName  string
-	AvatarUrl pgtype.Text
+	AvatarUrl string
 	Status    int16
 	DeletedAt pgtype.Timestamptz
 	CreatedAt pgtype.Timestamptz
@@ -65,9 +65,9 @@ type UserConnection struct {
 }
 
 type UserCredential struct {
-	UserID                int64
-	HashedPassword        string
-	PasswordLastChangedAt pgtype.Timestamptz
+	UserID    int64
+	Password  string
+	UpdatedAt pgtype.Timestamptz
 }
 
 type UserRole struct {

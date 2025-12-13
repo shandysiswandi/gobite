@@ -32,3 +32,4 @@ config/*
 # Editor/IDE
 # .idea/
 # .vscode/
+.gocache

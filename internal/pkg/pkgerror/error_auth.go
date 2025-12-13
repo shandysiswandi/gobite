@@ -14,4 +14,8 @@ var (
 	// ErrAuthUnauthenticated indicates that authentication is required
 	// or the provided credentials are missing or invalid.
 	ErrAuthUnauthenticated = errors.New("invalid email or password")
+
+	// ErrAuthMfaRequired indicates that the user must complete
+	// a multi-factor authentication challenge before continuing.
+	ErrAuthMfaRequired = errors.New("multi-factor authentication required")
 )

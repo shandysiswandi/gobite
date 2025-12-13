@@ -11,30 +11,39 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
 
 type Dependency struct {
-	DBConn    *pgxpool.Pool
-	CacheConn *redis.Client
-	Config    pkgconfig.Config
-	UID       pkguid.NumberID
-	Hash      pkghash.Hash
-	Clock     pkgclock.Clocker
-	Validator pkgvalidator.Validator
-	Router    chi.Router
+	DBConn          *pgxpool.Pool
+	CacheConn       *redis.Client
+	Config          pkgconfig.Config
+	UID             pkguid.NumberID
+	UUID            pkguid.StringID
+	Hash            pkghash.Hash
+	Clock           pkgclock.Clocker
+	Validator       pkgvalidator.Validator
+	JWTTempToken    pkgjwt.JWT[map[string]any]
+	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
+	JWTRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
+	Router          chi.Router
 }
 
 func New(dep Dependency) error {
 	dbAuth := db.NewSQL(dep.DBConn)
-	cacheAuth := cache.NewRedis(dep.CacheConn)
+	cacheAuth := cache.NewRedis(dep.CacheConn, dep.Config)
 
 	uc := usecase.NewAuth(usecase.Dependency{
-		RepoDB:    dbAuth,
-		RepoCache: cacheAuth,
-		Validator: dep.Validator,
-		Hash:      dep.Hash,
+		RepoDB:          dbAuth,
+		RepoCache:       cacheAuth,
+		Validator:       dep.Validator,
+		Hash:            dep.Hash,
+		UID:             dep.UUID,
+		JWTTempToken:    dep.JWTTempToken,
+		JWTAccessToken:  dep.JWTAccessToken,
+		JWTRefreshToken: dep.JWTRefreshToken,
 	})
 
 	inbound.RegisterHTTPEndpoint(dep.Router, uc)

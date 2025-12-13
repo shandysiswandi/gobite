@@ -5,6 +5,8 @@ import (
 
 	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
 
@@ -14,6 +16,11 @@ type Usecase struct {
 
 	validator pkgvalidator.Validator
 	hash      pkghash.Hash
+	uid       pkguid.StringID
+
+	jwtTempToken    pkgjwt.JWT[map[string]any]
+	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
+	jwtRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
 }
 
 type Dependency struct {
@@ -22,19 +29,28 @@ type Dependency struct {
 
 	Validator pkgvalidator.Validator
 	Hash      pkghash.Hash
+	UID       pkguid.StringID
+
+	JWTTempToken    pkgjwt.JWT[map[string]any]
+	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
+	JWTRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
 }
 
 func NewAuth(dep Dependency) *Usecase {
 	return &Usecase{
-		repoDB:    dep.RepoDB,
-		repoCache: dep.RepoCache,
-		validator: dep.Validator,
-		hash:      dep.Hash,
+		repoDB:          dep.RepoDB,
+		repoCache:       dep.RepoCache,
+		validator:       dep.Validator,
+		hash:            dep.Hash,
+		uid:             dep.UID,
+		jwtTempToken:    dep.JWTTempToken,
+		jwtAccessToken:  dep.JWTAccessToken,
+		jwtRefreshToken: dep.JWTRefreshToken,
 	}
 }
 
 type repoCache interface {
-	//
+	SaveTokensID(ctx context.Context, acID, refID string) error
 }
 
 type repoDB interface {

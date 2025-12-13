@@ -1,10 +1,71 @@
+# -----------------------------------------------------------------------------
+# Application Configuration
+# -----------------------------------------------------------------------------
 tz: "Asia/Jakarta"
 
-server.address.http: 0.0.0.0:8080
+server:
+  address:
+    # The address and port the HTTP server will listen on.
+    # 0.0.0.0 means it will listen on all available network interfaces.
+    http: "0.0.0.0:8080"
 
-database.dsn: "postgres://user:password@localhost:5432/gobite?sslmode=disable"
+# -----------------------------------------------------------------------------
+# Database Configuration
+# -----------------------------------------------------------------------------
+database:
+  # The full connection URL for the PostgreSQL database.
+  # Format: postgres://[user]:[password]@[host]:[port]/[database_name]
+  url: "postgres://user:password@localhost:5432/gobite?sslmode=disable"
 
-password.cost: 8
-password.secret: secret
+# -----------------------------------------------------------------------------
+# Redis Configuration
+# -----------------------------------------------------------------------------
+redis:
+  # The connection URL for the Redis server.
+  # Format: redis://[user]:[password]@[host]:[port]/[db_number]
+  url: "redis://localhost:6379/1"
 
-modules.auth.enabled: true
+# -----------------------------------------------------------------------------
+# JWT Configuration
+# -----------------------------------------------------------------------------
+jwt:
+  temp:
+    # A 64-byte, base64-encoded secret key.
+    # Generate with: openssl rand -base64 64
+    secret: "your-super-secret-64-byte-long-session-key-for-testing"
+
+    # Expiration time for temp tokens in seconds (e.g., 3 minutes).
+    ttl: 3
+
+  access:
+    # A 64-byte, base64-encoded secret key.
+    # Generate with: openssl rand -base64 64
+    secret: "your-super-secret-64-byte-long-session-key-for-testing"
+
+    # Expiration time for access tokens in seconds (e.g., 15 minutes).
+    ttl: 15
+
+  refresh:
+    # A 64-byte, base64-encoded secret key.
+    # Generate with: openssl rand -base64 64
+    secret: "your-super-secret-64-byte-long-session-key-for-testing"
+
+    # Expiration time for refresh tokens in seconds (e.g., 7 days).
+    ttl: 7
+
+# -----------------------------------------------------------------------------
+# Password Configuration
+# -----------------------------------------------------------------------------
+password:
+  cost: 12
+  secret: secret
+
+# -----------------------------------------------------------------------------
+# Modules Configuration
+# -----------------------------------------------------------------------------
+modules:
+  auth:
+    enabled: true
+
+  some:
+    enabled: true

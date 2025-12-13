@@ -15,7 +15,7 @@ func userFromSQL(u pkgsql.User) *domain.User {
 		ID:        u.ID,
 		Email:     u.Email,
 		FullName:  u.FullName,
-		AvatarURL: u.AvatarUrl.String,
+		AvatarURL: u.AvatarUrl,
 		Status:    domain.UserStatus(u.Status),
 		CreatedAt: u.CreatedAt.Time,
 		UpdatedAt: u.UpdatedAt.Time,

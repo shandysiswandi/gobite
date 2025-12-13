@@ -27,5 +27,7 @@ func (h *HTTPEndpoint) Login(w http.ResponseWriter, r *http.Request) {
 	pkgrouter.Response(w, LoginResponse{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
+		MfaRequired:  resp.MfaRequired,
+		PreAuthToken: resp.PreAuthToken,
 	})
 }

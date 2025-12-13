@@ -6,6 +6,9 @@ type LoginInput struct {
 }
 
 type LoginOutput struct {
+	MfaRequired  bool
+	PreAuthToken string
+	//
 	AccessToken  string
 	RefreshToken string
 }

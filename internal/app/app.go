@@ -10,6 +10,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkglog"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
@@ -20,11 +21,14 @@ type App struct {
 	config pkgconfig.Config
 
 	// libraries
-	validator pkgvalidator.Validator
-	clock     pkgclock.Clocker
-	hash      pkghash.Hash
-	uid       pkguid.NumberID
-	uuid      pkguid.StringID
+	validator       pkgvalidator.Validator
+	clock           pkgclock.Clocker
+	hash            pkghash.Hash
+	uid             pkguid.NumberID
+	uuid            pkguid.StringID
+	jwtTempToken    pkgjwt.JWT[map[string]any]
+	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
+	jwtRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
 
 	// resources
 	dbConn    *pgxpool.Pool
@@ -45,6 +49,7 @@ func New() *App {
 
 	app.initConfig()
 	app.initLibraries()
+	app.initJWT()
 	app.initDatabase()
 	app.initCache()
 	app.initHTTPServer()
