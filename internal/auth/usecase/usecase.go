@@ -56,11 +56,14 @@ func NewAuth(dep Dependency) *Usecase {
 type repoCache interface {
 	SaveTokensID(ctx context.Context, acID, refID string) error
 	DeleteTokensID(ctx context.Context, acID, refID string) error
+	IsTokenIDExist(ctx context.Context, id string) (bool, error)
+	RotateTokensID(ctx context.Context, oldRefID, newAcID, newRefID string) error
 }
 
 type repoDB interface {
 	// users
 	UserGetByEmail(ctx context.Context, email string) (*domain.User, error)
+	UserGetByID(ctx context.Context, id int64) (*domain.User, error)
 
 	// user_credentials
 	UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error)

@@ -11,8 +11,9 @@ import (
 //nolint:gochecknoglobals // global for fast reuse
 var skipEndpoints = map[string]map[string]struct{}{
 	"POST": {
-		"/auth/login":    struct{}{},
-		"/auth/register": struct{}{},
+		"/auth/login":         struct{}{},
+		"/auth/register":      struct{}{},
+		"/auth/refresh-token": struct{}{},
 	},
 }
 

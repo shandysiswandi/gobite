@@ -29,3 +29,12 @@ type LogoutRequest struct {
 type LogoutResponse struct {
 	Success bool `json:"success"`
 }
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type RefreshTokenResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}

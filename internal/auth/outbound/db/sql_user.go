@@ -33,3 +33,15 @@ func (s *SQL) UserGetByEmail(ctx context.Context, email string) (*domain.User, e
 
 	return userFromSQL(result), nil
 }
+
+func (s *SQL) UserGetByID(ctx context.Context, id int64) (*domain.User, error) {
+	result, err := s.query.UserGetByID(ctx, id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, pkgerror.ErrNotFound
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return userFromSQL(result), nil
+}

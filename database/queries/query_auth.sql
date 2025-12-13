@@ -8,6 +8,12 @@ WHERE
     email = @email AND 
     deleted_at IS NULL;
 
+-- name: UserGetByID :one
+SELECT * FROM users 
+WHERE 
+    id = @id AND 
+    deleted_at IS NULL;
+
 -- name: UserCreate :exec
 INSERT INTO users (id, email, full_name, avatar_url, status)
 VALUES (@id, @email, @full_name, @avatar_url, @status);

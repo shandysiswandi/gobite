@@ -1,5 +1,10 @@
 package domain
 
-type RefreshTokenInput struct{}
+type RefreshTokenInput struct {
+	RefreshToken string `validate:"required"`
+}
 
-type RefreshTokenOutput struct{}
+type RefreshTokenOutput struct {
+	AccessToken  string
+	RefreshToken string
+}
