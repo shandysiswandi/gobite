@@ -7,6 +7,10 @@ export
 run:
 	@reflex -r '\.go$$' -s -- sh -c "LOCAL=true go run main.go"
 
+.PHONY: lint
+lint:
+	@golangci-lint run
+
 .PHONY: migrate-up
 migrate-up:
 	@goose -dir database/migrations postgres "postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?sslmode=disable" up

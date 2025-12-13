@@ -29,3 +29,13 @@ func (c *Redis) SaveTokensID(ctx context.Context, acID, refID string) error {
 
 	return err
 }
+
+func (c *Redis) DeleteTokensID(ctx context.Context, acID, refID string) error {
+	_, err := c.client.TxPipelined(ctx, func(pipe redis.Pipeliner) error {
+		pipe.Del(ctx, acID)
+		pipe.Del(ctx, refID)
+		return nil
+	})
+
+	return err
+}

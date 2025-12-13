@@ -38,27 +38,26 @@ func (s *Symmetric[T]) Generate(subject string, payload T) (string, string, erro
 	now := s.clock.Now()
 	jti := s.uuid.Generate()
 
-	claims := Claims[T]{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    s.issuer,
-			Audience:  []string{s.audience},
-			IssuedAt:  jwt.NewNumericDate(now),
-			NotBefore: jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
-			Subject:   subject,
-			ID:        jti,
-		},
-		Payload: payload,
+	claims := Claims[T]{}
+	claims.registeredClaims = jwt.RegisteredClaims{
+		Issuer:    s.issuer,
+		Audience:  []string{s.audience},
+		IssuedAt:  jwt.NewNumericDate(now),
+		NotBefore: jwt.NewNumericDate(now),
+		ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
+		Subject:   subject,
+		ID:        jti,
 	}
+	claims.payload = payload
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS512, claims)
 	signed, err := token.SignedString(s.secret)
 	return signed, jti, err
 }
 
-func (s *Symmetric[T]) Verify(tokenStr string) (string, T, error) {
+func (s *Symmetric[T]) Verify(tokenStr string) (Claims[T], error) {
 	var claims Claims[T]
-	var zero T
+	var zero Claims[T]
 
 	token, err := jwt.ParseWithClaims(
 		tokenStr,
@@ -78,14 +77,14 @@ func (s *Symmetric[T]) Verify(tokenStr string) (string, T, error) {
 
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return "", zero, ErrTokenExpired
+			return zero, ErrTokenExpired
 		}
-		return "", zero, err
+		return zero, err
 	}
 
 	if !token.Valid {
-		return "", zero, ErrInvalidToken
+		return zero, ErrInvalidToken
 	}
 
-	return claims.Subject, claims.Payload, nil
+	return claims, nil
 }

@@ -10,6 +10,17 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
+type errorResponse struct {
+	Message string            `json:"message"`
+	Error   map[string]string `json:"error,omitempty"`
+}
+
+type successReponse struct {
+	Message string            `json:"message"`
+	Data    any               `json:"data"`
+	Meta    map[string]string `json:"meta,omitempty"`
+}
+
 func writeJSON(w http.ResponseWriter, data any, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
@@ -36,16 +47,39 @@ func ResponseError(w http.ResponseWriter, err error) {
 	)
 
 	switch {
-	case errors.As(err, &validation):
+	case
+		errors.As(err, &validation):
 		writeJSON(w, errorResponse{Message: "validation error", Error: validation.Values()}, http.StatusUnprocessableEntity)
-	case errors.As(err, &jsonSyntaxErr), errors.As(err, &jsonTypeErr), errors.Is(err, io.ErrUnexpectedEOF):
+
+	case
+		errors.As(err, &jsonSyntaxErr),
+		errors.As(err, &jsonTypeErr),
+		errors.Is(err, io.ErrUnexpectedEOF):
 		writeJSON(w, errorResponse{Message: "invalid request body"}, http.StatusBadRequest)
-	case errors.Is(err, pkgerror.ErrNotFound):
+
+	case
+		errors.Is(err, pkgerror.ErrNotFound):
 		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusNotFound)
-	case errors.Is(err, pkgerror.ErrAuthUnauthenticated), errors.Is(err, pkgerror.ErrAuthMfaRequired):
+
+	case
+		errors.Is(err, pkgerror.ErrMethodNotAllowed):
+		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusMethodNotAllowed)
+
+	case
+		errors.Is(err, pkgerror.ErrUnauthenticated),
+		errors.Is(err, pkgerror.ErrAuthUnauthenticated):
 		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusUnauthorized)
-	case errors.Is(err, pkgerror.ErrAuthNotVerified), errors.Is(err, pkgerror.ErrAuthBanned):
+
+	case
+		errors.Is(err, pkgerror.ErrUnauthorized),
+		errors.Is(err, pkgerror.ErrAuthNotVerified),
+		errors.Is(err, pkgerror.ErrAuthBanned):
 		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusForbidden)
+
+	case
+		errors.Is(err, pkgerror.ErrAuthEmailUsed):
+		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusConflict)
+
 	default:
 		writeJSON(w, errorResponse{Message: err.Error()}, http.StatusInternalServerError)
 	}

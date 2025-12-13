@@ -2,23 +2,25 @@ package pkgerror
 
 import "errors"
 
+// Authentication-specific sentinel errors.
+
 var (
-	// ErrAuthNotVerified indicates that the user's account exists
-	// but has not yet completed the verification process.
+	// ErrAuthNotVerified indicates that the user account exists but has not
+	// completed the required verification process (for example, email verification).
 	ErrAuthNotVerified = errors.New("user account is not verified")
 
-	// ErrAuthBanned indicates that the user's account is banned
-	// and access is permanently or temporarily restricted.
+	// ErrAuthBanned indicates that the user account is banned and access is
+	// temporarily or permanently restricted.
 	ErrAuthBanned = errors.New("user account is banned")
 
-	// ErrAuthUnauthenticated indicates that authentication is required
-	// or the provided credentials are missing or invalid.
+	// ErrAuthUnauthenticated indicates that authentication failed due to missing
+	// or invalid credentials.
+	//
+	// Note: The error message is intentionally generic to avoid leaking
+	// information about which credential was incorrect.
 	ErrAuthUnauthenticated = errors.New("invalid email or password")
 
-	// ErrAuthMfaRequired indicates that the user must complete
-	// a multi-factor authentication challenge before continuing.
-	ErrAuthMfaRequired = errors.New("multi-factor authentication required")
-
-	// ErrAuthEmailUsed indicates that the email is already registered.
+	// ErrAuthEmailUsed indicates that the provided email address is already
+	// associated with an existing user account.
 	ErrAuthEmailUsed = errors.New("email is already registered")
 )

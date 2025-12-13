@@ -1,5 +1,9 @@
 package domain
 
-type LogoutInput struct{}
+type LogoutInput struct {
+	RefreshToken string `validate:"required"`
+}
 
-type LogoutOutput struct{}
+type LogoutOutput struct {
+	Success bool
+}

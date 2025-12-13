@@ -51,3 +51,21 @@ func (h *HTTPEndpoint) Register(w http.ResponseWriter, r *http.Request) {
 
 	pkgrouter.Response(w, RegisterResponse{IsNeedVerify: resp.IsNeedVerify})
 }
+
+func (h *HTTPEndpoint) Logout(w http.ResponseWriter, r *http.Request) {
+	var req LogoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	resp, err := h.uc.Logout(r.Context(), domain.LogoutInput{
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		pkgrouter.ResponseError(w, err)
+		return
+	}
+
+	pkgrouter.Response(w, LogoutResponse{Success: resp.Success})
+}

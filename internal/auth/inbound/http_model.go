@@ -21,3 +21,11 @@ type LoginResponse struct {
 type RegisterResponse struct {
 	IsNeedVerify bool `json:"is_need_verify"`
 }
+
+type LogoutRequest struct {
+	RefreshToken string `json:"refresh_token"`
+}
+
+type LogoutResponse struct {
+	Success bool `json:"success"`
+}

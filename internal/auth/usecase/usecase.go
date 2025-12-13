@@ -55,6 +55,7 @@ func NewAuth(dep Dependency) *Usecase {
 
 type repoCache interface {
 	SaveTokensID(ctx context.Context, acID, refID string) error
+	DeleteTokensID(ctx context.Context, acID, refID string) error
 }
 
 type repoDB interface {
