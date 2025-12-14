@@ -1,14 +1,23 @@
 package pkgrouter
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
+	"unicode/utf8"
+
+	"github.com/julienschmidt/httprouter"
 )
+
+const maxLoggedBodyBytes = 64 * 1024
 
 //nolint:gochecknoglobals // global for fast reuse
 var sensitiveKeys = map[string]struct{}{
@@ -43,83 +52,179 @@ func maskData(v any) any {
 			}
 		}
 		return masked
-
 	case []any:
 		res := make([]any, len(val))
 		for i, v2 := range val {
 			res[i] = maskData(v2)
 		}
 		return res
-
 	default:
 		return v
 	}
 }
 
-type responseRecorder struct {
+type statusRecorder struct {
 	http.ResponseWriter
 	status int
+	bytes  int
 	body   *bytes.Buffer
+	capped bool
 }
 
-func (r *responseRecorder) WriteHeader(code int) {
-	r.status = code
-	r.ResponseWriter.WriteHeader(code)
+func (w *statusRecorder) WriteHeader(code int) {
+	w.status = code
+	w.ResponseWriter.WriteHeader(code)
 }
 
-func (r *responseRecorder) Write(b []byte) (int, error) {
-	r.body.Write(b)
-	return r.ResponseWriter.Write(b)
+func (w *statusRecorder) Write(p []byte) (int, error) {
+	if w.status == 0 {
+		w.status = http.StatusOK
+	}
+
+	if w.body != nil && !w.capped && len(p) > 0 {
+		remaining := maxLoggedBodyBytes - w.body.Len()
+		if remaining > 0 {
+			if len(p) > remaining {
+				w.body.Write(p[:remaining])
+				w.capped = true
+			} else {
+				w.body.Write(p)
+			}
+		} else {
+			w.capped = true
+		}
+	}
+
+	n, err := w.ResponseWriter.Write(p)
+	w.bytes += n
+	return n, err
 }
 
-//nolint:errcheck,gosec // ignore error
-func Logging(next http.Handler) http.Handler {
+func (w *statusRecorder) Flush() {
+	if f, ok := w.ResponseWriter.(http.Flusher); ok {
+		f.Flush()
+	}
+}
+
+func (w *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	h, ok := w.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, errors.New("hijack not supported")
+	}
+	return h.Hijack()
+}
+
+func (w *statusRecorder) Push(target string, opts *http.PushOptions) error {
+	if p, ok := w.ResponseWriter.(http.Pusher); ok {
+		return p.Push(target, opts)
+	}
+	return http.ErrNotSupported
+}
+
+func matchedRoutePath(r *http.Request) string {
+	pattern := httprouter.ParamsFromContext(r.Context()).MatchedRoutePath()
+	if pattern != "" {
+		return pattern
+	}
+	return r.URL.Path
+}
+
+func parseAndMaskBody(contentType string, body []byte) any {
+	if len(body) == 0 {
+		return nil
+	}
+
+	var jsonBody any
+	if err := json.Unmarshal(body, &jsonBody); err == nil {
+		return maskData(jsonBody)
+	}
+
+	if strings.HasPrefix(strings.ToLower(contentType), "application/x-www-form-urlencoded") {
+		values, err := url.ParseQuery(string(body))
+		if err == nil {
+			masked := make(map[string]any, len(values))
+			for k, v := range values {
+				if _, found := sensitiveKeys[strings.ToLower(k)]; found {
+					masked[k] = "***"
+					continue
+				}
+				if len(v) == 1 {
+					masked[k] = v[0]
+				} else {
+					masked[k] = v
+				}
+			}
+			return masked
+		}
+	}
+
+	if !utf8.Valid(body) {
+		return "<binary body omitted>"
+	}
+	if len(body) > maxLoggedBodyBytes {
+		return string(body[:maxLoggedBodyBytes]) + "...(truncated)"
+	}
+	return string(body)
+}
+
+func middlewareLogging(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		route := matchedRoutePath(r)
 		start := time.Now()
 
-		// --- Read and restore body ---
 		var reqBodyBytes []byte
 		if r.Body != nil {
+			//nolint:errcheck // best effort for logging only
 			reqBodyBytes, _ = io.ReadAll(r.Body)
 		}
 		r.Body = io.NopCloser(bytes.NewBuffer(reqBodyBytes))
 
-		var reqJSON any
-		json.Unmarshal(reqBodyBytes, &reqJSON)
-		maskedReqBody := maskData(reqJSON)
-
 		slog.InfoContext(
 			r.Context(),
-			"Request received",
-			"path", r.URL.Path,
+			"request received",
 			"method", r.Method,
+			"route", route,
+			"path", r.URL.Path,
 			"headers", maskHeaders(r.Header),
-			"body", maskedReqBody,
+			"body", parseAndMaskBody(r.Header.Get("Content-Type"), reqBodyBytes),
 		)
 
-		// --- Capture response ---
-		rec := &responseRecorder{
-			ResponseWriter: w,
-			body:           &bytes.Buffer{},
-			status:         200,
-		}
-
+		rec := &statusRecorder{ResponseWriter: w, body: &bytes.Buffer{}}
 		next.ServeHTTP(rec, r)
 
-		// parse JSON response if possible
-		var respJSON any
-		json.Unmarshal(rec.body.Bytes(), &respJSON)
-		maskedRespBody := maskData(respJSON)
+		status := rec.status
+		if status == 0 {
+			status = http.StatusOK
+		}
+
+		var respBody any
+		if rec.body != nil {
+			var respJSON any
+			if err := json.Unmarshal(rec.body.Bytes(), &respJSON); err == nil {
+				respBody = maskData(respJSON)
+			} else if utf8.Valid(rec.body.Bytes()) {
+				respBody = rec.body.String()
+			} else if rec.body.Len() > 0 {
+				respBody = "<binary body omitted>"
+			}
+			if rec.capped {
+				respBody = map[string]any{
+					"body":      respBody,
+					"truncated": true,
+				}
+			}
+		}
 
 		slog.InfoContext(
 			r.Context(),
-			"Response sent",
-			"path", r.URL.Path,
+			"response sent",
 			"method", r.Method,
-			"status", rec.status,
+			"route", route,
+			"path", r.URL.Path,
+			"status", status,
+			"bytes", rec.bytes,
 			"latency_ms", time.Since(start).Milliseconds(),
-			"body", maskedRespBody,
+			"body", respBody,
 		)
 	})
 }

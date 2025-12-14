@@ -11,15 +11,22 @@ import (
 )
 
 func userFromSQL(u pkgsql.User) *domain.User {
-	return &domain.User{
+	item := &domain.User{
 		ID:        u.ID,
 		Email:     u.Email,
 		FullName:  u.FullName,
 		AvatarURL: u.AvatarUrl,
 		Status:    domain.UserStatus(u.Status),
-		CreatedAt: u.CreatedAt.Time,
-		UpdatedAt: u.UpdatedAt.Time,
 	}
+
+	if u.CreatedAt.Valid {
+		item.CreatedAt = u.CreatedAt.Time
+	}
+	if u.UpdatedAt.Valid {
+		item.UpdatedAt = u.UpdatedAt.Time
+	}
+
+	return item
 }
 
 func (s *SQL) UserGetByEmail(ctx context.Context, email string) (*domain.User, error) {

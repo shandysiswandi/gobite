@@ -1,7 +1,7 @@
 package domain
 
 type LoginInput struct {
-	Email    string `validate:"required,email"`
+	Email    string `validate:"required,lowercase,email"`
 	Password string `validate:"required"`
 }
 

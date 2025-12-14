@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
@@ -14,6 +13,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkglog"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
@@ -41,7 +41,7 @@ type App struct {
 	cacheConn *redis.Client
 
 	// server
-	router     chi.Router
+	router     *pkgrouter.Router
 	httpServer *http.Server
 
 	//

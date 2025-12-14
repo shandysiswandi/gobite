@@ -18,6 +18,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   redis:
     image: redis:8.2-alpine
@@ -33,6 +34,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 10s
 
   mailhog:
     image: mailhog/mailhog:v1.0.1
@@ -43,9 +45,59 @@ services:
     networks:
       - gobite-network
 
+  nsqlookupd:
+    image: nsqio/nsq:v1.3.0
+    pull_policy: missing
+    command: /nsqlookupd
+    networks:
+      - gobite-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4160"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  nsqd:
+    image: nsqio/nsq:v1.3.0
+    pull_policy: missing
+    command: >
+      /nsqd
+      --lookupd-tcp-address=nsqlookupd:4160
+      --broadcast-address=nsqd
+      --data-path=/data
+    volumes:
+      - nsq_gobite_data:/data
+    depends_on:
+      nsqlookupd:
+        condition: service_healthy
+    networks:
+      - gobite-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 4150"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  nsqadmin:
+    image: nsqio/nsq:v1.3.0
+    pull_policy: missing
+    command: >
+      /nsqadmin
+      --lookupd-http-address=nsqlookupd:4161
+    ports:
+      - "4171:4171" # Web UI
+    depends_on:
+      nsqlookupd:
+        condition: service_healthy
+    networks:
+      - gobite-network
+
 volumes:
   postgres_gobite_data:
   redis_gobite_data:
+  nsq_gobite_data:
 
 networks:
   gobite-network:

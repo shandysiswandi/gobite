@@ -164,7 +164,7 @@ func (a *App) initMail() {
 }
 
 func (a *App) initHTTPServer() {
-	a.router = pkgrouter.NewChi(a.uuid, a.jwtAccessToken)
+	a.router = pkgrouter.NewRouter(a.uuid, a.jwtAccessToken)
 
 	a.httpServer = &http.Server{
 		Addr:              a.config.GetString("server.address.http"),

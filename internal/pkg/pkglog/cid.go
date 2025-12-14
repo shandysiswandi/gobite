@@ -1,4 +1,4 @@
-package pkgcid
+package pkglog
 
 import "context"
 

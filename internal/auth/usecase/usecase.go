@@ -5,9 +5,11 @@ import (
 	"errors"
 	"log/slog"
 	"strconv"
+	"time"
 
 	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
@@ -38,18 +40,23 @@ type repoDB interface {
 
 	// mfa_factors
 	MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.MfaFactor, error)
+
+	// user_password_resets
+	UserPasswordResetCreate(ctx context.Context, userID int64, token string, expiresAt time.Time) error
 }
 
 type Usecase struct {
 	repoDB    repoDB
 	repoCache repoCache
-	mail      pkgmail.Mail
 
 	validator pkgvalidator.Validator
+	cfg       pkgconfig.Config
 	hash      pkghash.Hash
 	uid       pkguid.NumberID
+	uuid      pkguid.StringID
 	totp      pkgotp.OTP
 	clock     pkgclock.Clocker
+	mail      pkgmail.Mail
 
 	jwtTempToken    pkgjwt.JWT[map[string]any]
 	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -59,13 +66,15 @@ type Usecase struct {
 type Dependency struct {
 	RepoDB    repoDB
 	RepoCache repoCache
-	Mail      pkgmail.Mail
 
 	Validator pkgvalidator.Validator
+	Config    pkgconfig.Config
 	Hash      pkghash.Hash
 	UID       pkguid.NumberID
+	UUID      pkguid.StringID
 	Totp      pkgotp.OTP
 	Clock     pkgclock.Clocker
+	Mail      pkgmail.Mail
 
 	JWTTempToken    pkgjwt.JWT[map[string]any]
 	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -76,12 +85,14 @@ func NewAuth(dep Dependency) *Usecase {
 	return &Usecase{
 		repoDB:          dep.RepoDB,
 		repoCache:       dep.RepoCache,
-		mail:            dep.Mail,
 		validator:       dep.Validator,
 		hash:            dep.Hash,
+		cfg:             dep.Config,
 		uid:             dep.UID,
+		uuid:            dep.UUID,
 		totp:            dep.Totp,
 		clock:           dep.Clock,
+		mail:            dep.Mail,
 		jwtTempToken:    dep.JWTTempToken,
 		jwtAccessToken:  dep.JWTAccessToken,
 		jwtRefreshToken: dep.JWTRefreshToken,
@@ -92,11 +103,11 @@ func (s *Usecase) getUserByEmail(ctx context.Context, email string) (*domain.Use
 	user, err := s.repoDB.UserGetByEmail(ctx, email)
 	if errors.Is(err, pkgerror.ErrNotFound) {
 		slog.WarnContext(ctx, "user account not found")
-		return nil, pkgerror.ErrAuthUnauthenticated
+		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
 	}
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to repo get user by email", "error", err)
-		return nil, err
+		return nil, pkgerror.NewServer(err)
 	}
 
 	if err := s.ensureUserActive(ctx, user); err != nil {
@@ -110,11 +121,11 @@ func (s *Usecase) getUserByID(ctx context.Context, userID int64) (*domain.User, 
 	user, err := s.repoDB.UserGetByID(ctx, userID)
 	if errors.Is(err, pkgerror.ErrNotFound) {
 		slog.WarnContext(ctx, "user account not found", "user_id", userID)
-		return nil, pkgerror.ErrAuthUnauthenticated
+		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
 	}
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to repo get user by id", "user_id", userID, "error", err)
-		return nil, err
+		return nil, pkgerror.NewServer(err)
 	}
 
 	if err := s.ensureUserActive(ctx, user); err != nil {
@@ -127,12 +138,12 @@ func (s *Usecase) getUserByID(ctx context.Context, userID int64) (*domain.User, 
 func (s *Usecase) ensureUserActive(ctx context.Context, user *domain.User) error {
 	if user.Status == domain.UserStatusUnverified {
 		slog.WarnContext(ctx, "user not verified", "user_id", user.ID)
-		return pkgerror.ErrAuthNotVerified
+		return pkgerror.NewBusiness("user account is not verified", pkgerror.CodeUnauthorized)
 	}
 
 	if user.Status == domain.UserStatusBanned {
 		slog.WarnContext(ctx, "user account banned", "user_id", user.ID)
-		return pkgerror.ErrAuthBanned
+		return pkgerror.NewBusiness("user account is banned", pkgerror.CodeUnauthorized)
 	}
 
 	return nil
@@ -142,11 +153,11 @@ func (s *Usecase) getCredential(ctx context.Context, userID int64) (*domain.User
 	userCred, err := s.repoDB.UserCredentialGetByUserID(ctx, userID)
 	if errors.Is(err, pkgerror.ErrNotFound) {
 		slog.WarnContext(ctx, "user credential not found", "user_id", userID)
-		return nil, pkgerror.ErrAuthUnauthenticated
+		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
 	}
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to repo get user credential by user_id", "user_id", userID, "error", err)
-		return nil, err
+		return nil, pkgerror.NewServer(err)
 	}
 
 	return userCred, nil
@@ -156,18 +167,18 @@ func (s *Usecase) issueTokens(ctx context.Context, user *domain.User) (acToken, 
 	subject := strconv.FormatInt(user.ID, 10)
 
 	acToken, acJTI, err = s.jwtAccessToken.Generate(subject, pkgjwt.AccessTokenPayload{
-		UserID: subject,
+		UserID: user.ID,
 		Email:  user.Email,
 	})
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to generate access jwt token", "user_id", user.ID, "error", err)
-		return "", "", "", "", err
+		return "", "", "", "", pkgerror.NewServer(err)
 	}
 
-	refToken, refJTI, err = s.jwtRefreshToken.Generate(subject, pkgjwt.RefreshTokenPayload{Message: "hack me"})
+	refToken, refJTI, err = s.jwtRefreshToken.Generate(subject, pkgjwt.RefreshTokenPayload{UserID: user.ID})
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to generate refresh jwt token", "user_id", user.ID, "error", err)
-		return "", "", "", "", err
+		return "", "", "", "", pkgerror.NewServer(err)
 	}
 
 	return acToken, acJTI, refToken, refJTI, nil

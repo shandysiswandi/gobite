@@ -15,7 +15,7 @@ CREATE TABLE users (
 -- This enforces uniqueness across all users, including those that are soft-deleted.
 CREATE UNIQUE INDEX idx_users_lower_case_email ON users (lower(email));
 
-CREATE TRIGGER set_timestamp
+CREATE TRIGGER trg_users_set_updated_at
 BEFORE UPDATE ON users
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
@@ -31,10 +31,27 @@ CREATE TABLE user_credentials (
         ON DELETE CASCADE
 );
 
-CREATE TRIGGER set_timestamp
+CREATE TRIGGER trg_user_credentials_set_updated_at
 BEFORE UPDATE ON user_credentials
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
+
+CREATE TABLE user_password_resets (
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    token VARCHAR NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used_at TIMESTAMPTZ DEFAULT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT fk_user_password_resets_user
+        FOREIGN KEY (user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE UNIQUE INDEX idx_user_password_resets_token ON user_password_resets(token);
+CREATE INDEX idx_user_password_resets_user_id ON user_password_resets(user_id);
 
 CREATE TABLE user_connections (
     id BIGINT PRIMARY KEY,
@@ -75,6 +92,8 @@ CREATE TABLE role_permissions (
     CONSTRAINT fk_permission FOREIGN KEY(permission_id) REFERENCES permissions(id) ON DELETE CASCADE
 );
 
+CREATE INDEX idx_role_permissions_permission_id ON role_permissions(permission_id);
+
 CREATE TABLE user_roles (
     user_id BIGINT NOT NULL,
     role_id BIGINT NOT NULL,
@@ -82,6 +101,8 @@ CREATE TABLE user_roles (
     CONSTRAINT fk_user_roles_user FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_user_roles_role FOREIGN KEY(role_id) REFERENCES roles(id) ON DELETE CASCADE
 );
+
+CREATE INDEX idx_user_roles_role_id ON user_roles(role_id);
 
 -- ---------------------------------
 -- MFA (Multi-Factor Authentication)
@@ -102,7 +123,7 @@ CREATE TABLE mfa_factors (
 
 CREATE INDEX idx_mfa_factors_user_id ON mfa_factors(user_id);
 
-CREATE TRIGGER set_timestamp
+CREATE TRIGGER trg_mfa_factors_set_updated_at
 BEFORE UPDATE ON mfa_factors
 FOR EACH ROW
 EXECUTE FUNCTION trigger_set_timestamp();
@@ -130,6 +151,9 @@ VALUES (1, '$2a$12$CmaDcrhMrG9YMPxW2wWnmO/dAObJfNXHWmM0x45SzjP/nOB8Y1Rli');
 
 -- +goose Down
 -- +goose StatementBegin
+DROP TRIGGER IF EXISTS trg_mfa_factors_set_updated_at ON mfa_factors;
+DROP TRIGGER IF EXISTS trg_user_credentials_set_updated_at ON user_credentials;
+DROP TRIGGER IF EXISTS trg_users_set_updated_at ON users;
 DROP TABLE IF EXISTS mfa_backup_codes;
 DROP TABLE IF EXISTS mfa_factors;
 DROP TABLE IF EXISTS user_roles;

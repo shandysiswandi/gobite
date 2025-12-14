@@ -38,6 +38,14 @@ SET
 WHERE user_id = @user_id;
 
 -- ----- ----- ----- ----- -----
+-- user_password_resets table
+-- ----- ----- ----- ----- -----
+
+-- name: UserPasswordResetCreate :exec
+INSERT INTO user_password_resets (user_id, token, expires_at)
+VALUES (@user_id, @token, @expires_at);
+
+-- ----- ----- ----- ----- -----
 -- mfa_factors table
 -- ----- ----- ----- ----- -----
 

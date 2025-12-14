@@ -70,6 +70,15 @@ type UserCredential struct {
 	UpdatedAt pgtype.Timestamptz
 }
 
+type UserPasswordReset struct {
+	ID        int64
+	UserID    int64
+	Token     string
+	ExpiresAt pgtype.Timestamptz
+	UsedAt    pgtype.Timestamptz
+	CreatedAt pgtype.Timestamptz
+}
+
 type UserRole struct {
 	UserID int64
 	RoleID int64

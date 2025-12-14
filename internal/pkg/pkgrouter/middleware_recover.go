@@ -10,14 +10,12 @@ import (
 	"strings"
 )
 
-func Recoverer(next http.Handler) http.Handler {
+func middlewareRecoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if rvr := recover(); rvr != nil {
 				//nolint:err113,errorlint // this must compare directly
 				if rvr == http.ErrAbortHandler {
-					// we don't recover http.ErrAbortHandler so the response
-					// to the client is aborted, this should not be logged
 					panic(rvr)
 				}
 
@@ -29,11 +27,9 @@ func Recoverer(next http.Handler) http.Handler {
 					w.WriteHeader(http.StatusInternalServerError)
 				}
 
-				// Filtered stack trace for internal files only
 				lines := strings.Split(string(debug.Stack()), "\n")
 				printStackTrace(lines)
 
-				// Send a default fallback response to the client.
 				//nolint:errcheck,gosec // ignore error
 				json.NewEncoder(w).Encode(map[string]string{
 					"message": "Internal server error",
@@ -51,18 +47,16 @@ func printStackTrace(lines []string) {
 		line := strings.TrimSpace(lines[i+1])
 		if strings.Contains(line, "/internal/") && strings.Contains(line, ".go") {
 			if idx := strings.Index(line, ".go:"); idx != -1 {
-				// Cut after ".go:xxx"
-				end := strings.Index(line[idx:], " ") // find space after ":line"
+				end := strings.Index(line[idx:], " ")
 				if end == -1 {
 					end = len(line)
 				} else {
 					end += idx
 				}
 				shortPath := line[:end]
-				// Trim full absolute path to just the internal path
 				internalIdx := strings.Index(shortPath, "/internal/")
 				if internalIdx != -1 {
-					shortPath = shortPath[internalIdx+1:] // remove leading "/"
+					shortPath = shortPath[internalIdx+1:]
 					fmt.Fprintln(os.Stderr, "stack trace: ", shortPath)
 				}
 			}

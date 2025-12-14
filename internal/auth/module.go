@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 	"github.com/shandysiswandi/gobite/internal/auth/inbound"
@@ -14,6 +13,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
@@ -32,7 +32,7 @@ type Dependency struct {
 	JWTTempToken    pkgjwt.JWT[map[string]any]
 	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
 	JWTRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
-	Router          chi.Router
+	Router          *pkgrouter.Router
 }
 
 func New(dep Dependency) error {
@@ -42,12 +42,14 @@ func New(dep Dependency) error {
 	uc := usecase.NewAuth(usecase.Dependency{
 		RepoDB:          dbAuth,
 		RepoCache:       cacheAuth,
-		Mail:            dep.Mail,
 		Validator:       dep.Validator,
+		Config:          dep.Config,
 		Hash:            dep.Hash,
 		UID:             dep.UID,
+		UUID:            dep.UUID,
 		Totp:            dep.Totp,
 		Clock:           dep.Clock,
+		Mail:            dep.Mail,
 		JWTTempToken:    dep.JWTTempToken,
 		JWTAccessToken:  dep.JWTAccessToken,
 		JWTRefreshToken: dep.JWTRefreshToken,

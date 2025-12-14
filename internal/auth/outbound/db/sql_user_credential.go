@@ -11,11 +11,16 @@ import (
 )
 
 func userCredentialFromSQL(u pkgsql.UserCredential) *domain.UserCredential {
-	return &domain.UserCredential{
-		UserID:    u.UserID,
-		Password:  u.Password,
-		UpdatedAt: u.UpdatedAt.Time,
+	item := &domain.UserCredential{
+		UserID:   u.UserID,
+		Password: u.Password,
 	}
+
+	if u.UpdatedAt.Valid {
+		item.UpdatedAt = u.UpdatedAt.Time
+	}
+
+	return item
 }
 
 func (s *SQL) UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error) {

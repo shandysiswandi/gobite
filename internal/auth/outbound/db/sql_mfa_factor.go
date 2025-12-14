@@ -8,7 +8,7 @@ import (
 )
 
 func mfaFactorFromSQL(u pkgsql.MfaFactor) *domain.MfaFactor {
-	return &domain.MfaFactor{
+	item := &domain.MfaFactor{
 		ID:           u.ID,
 		UserID:       u.UserID,
 		Type:         u.Type,
@@ -16,9 +16,16 @@ func mfaFactorFromSQL(u pkgsql.MfaFactor) *domain.MfaFactor {
 		Secret:       u.Secret,
 		KeyVersion:   u.KeyVersion,
 		IsVerified:   u.IsVerified,
-		CreatedAt:    u.CreatedAt.Time,
-		UpdatedAt:    u.UpdatedAt.Time,
 	}
+
+	if u.CreatedAt.Valid {
+		item.CreatedAt = u.CreatedAt.Time
+	}
+	if u.UpdatedAt.Valid {
+		item.UpdatedAt = u.UpdatedAt.Time
+	}
+
+	return item
 }
 
 func (s *SQL) MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.MfaFactor, error) {

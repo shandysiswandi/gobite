@@ -44,7 +44,7 @@ jwt:
     # Generate with: openssl rand -base64 64
     secret: "your-super-secret-64-byte-long-session-key-for-testing"
 
-    # Expiration time for temp tokens in seconds (e.g., 3 minutes).
+    # Expiration time for temp tokens in minutes (e.g., 3).
     ttl: 3
 
   access:
@@ -52,7 +52,7 @@ jwt:
     # Generate with: openssl rand -base64 64
     secret: "your-super-secret-64-byte-long-session-key-for-testing"
 
-    # Expiration time for access tokens in seconds (e.g., 15 minutes).
+    # Expiration time for access tokens in minutes (e.g., 15).
     ttl: 15
 
   refresh:
@@ -60,7 +60,7 @@ jwt:
     # Generate with: openssl rand -base64 64
     secret: "your-super-secret-64-byte-long-session-key-for-testing"
 
-    # Expiration time for refresh tokens in seconds (e.g., 7 days).
+    # Expiration time for refresh tokens in days (e.g., 7).
     ttl: 7
 
 # -----------------------------------------------------------------------------
@@ -75,7 +75,11 @@ password:
 # -----------------------------------------------------------------------------
 modules:
   auth:
+    #
     enabled: true
+
+    # Expiration time for password reset in minutes (e.g., 15).
+    password_reset_ttl: 15
 
   some:
     enabled: true

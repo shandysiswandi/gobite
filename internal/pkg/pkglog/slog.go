@@ -7,8 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgcid"
 )
 
 func InitLogging() {
@@ -46,7 +44,7 @@ type contextHandler struct {
 }
 
 func (h *contextHandler) Handle(ctx context.Context, r slog.Record) error {
-	if cID := pkgcid.GetCorrelationID(ctx); cID != "" && cID != "[invalid_chain_id]" {
+	if cID := GetCorrelationID(ctx); cID != "" && cID != "[invalid_chain_id]" {
 		r.AddAttrs(slog.String("_cID", cID))
 	}
 	r.AddAttrs(slog.String("service", "gobite"))

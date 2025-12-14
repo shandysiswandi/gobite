@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	_ "github.com/go-chi/chi/v5"
 	"github.com/shandysiswandi/gobite/internal/app"
 )
 

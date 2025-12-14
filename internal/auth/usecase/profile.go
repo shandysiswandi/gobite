@@ -10,7 +10,7 @@ import (
 func (s *Usecase) Profile(ctx context.Context, in domain.ProfileInput) (*domain.ProfileOutput, error) {
 	clm := pkgjwt.GetAuth[pkgjwt.AccessTokenPayload](ctx)
 
-	user, err := s.getUserByEmail(ctx, clm.Payload().Email)
+	user, err := s.getUserByID(ctx, clm.Payload().UserID)
 	if err != nil {
 		return nil, err
 	}

@@ -11,7 +11,7 @@ import (
 
 func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.LoginOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
-		return nil, err
+		return nil, pkgerror.NewInvalidInput(err)
 	}
 
 	user, err := s.getUserByEmail(ctx, in.Email)
@@ -26,13 +26,13 @@ func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.Logi
 
 	if !s.hash.Verify(userCred.Password, in.Password) {
 		slog.WarnContext(ctx, "password user account not match")
-		return nil, pkgerror.ErrAuthUnauthenticated
+		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
 	}
 
 	mfaFacs, err := s.repoDB.MfaFactorGetByUserID(ctx, user.ID)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to repo get mfa factor by user_id", "user_id", user.ID, "error", err)
-		return nil, err
+		return nil, pkgerror.NewServer(err)
 	}
 
 	// this mean user has mfa active
@@ -41,7 +41,7 @@ func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.Logi
 		tempToken, _, err := s.jwtTempToken.Generate(strID, map[string]any{"some_id": mfaFacs[0].ID})
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to generate temp jwt token", "user_id", user.ID, "error", err)
-			return nil, err
+			return nil, pkgerror.NewServer(err)
 		}
 
 		return &domain.LoginOutput{
@@ -57,7 +57,7 @@ func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.Logi
 
 	if err := s.repoCache.SaveTokensID(ctx, acJTI, refJTI); err != nil {
 		slog.ErrorContext(ctx, "failed to save jtis to redis", "ac", acJTI, "ref", refJTI, "error", err)
-		return nil, err
+		return nil, pkgerror.NewServer(err)
 	}
 
 	return &domain.LoginOutput{

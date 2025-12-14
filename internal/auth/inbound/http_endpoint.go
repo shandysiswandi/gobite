@@ -1,42 +1,40 @@
 package inbound
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/shandysiswandi/gobite/internal/auth/domain"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
-func (h *HTTPEndpoint) Login(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPEndpoint) Login(ctx context.Context, r *http.Request) (any, error) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.Login(r.Context(), domain.LoginInput{
+	resp, err := h.uc.Login(ctx, domain.LoginInput{
 		Email:    req.Email,
 		Password: req.Password,
 	})
 	if err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, err
 	}
 
-	pkgrouter.Response(w, LoginResponse{
+	return LoginResponse{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
 		MfaRequired:  resp.MfaRequired,
 		PreAuthToken: resp.PreAuthToken,
-	})
+	}, nil
 }
 
-func (h *HTTPEndpoint) Login2FA(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPEndpoint) Login2FA(ctx context.Context, r *http.Request) (any, error) {
 	var req Login2FARequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, pkgerror.NewInvalidFormat()
 	}
 
 	resp, err := h.uc.Login2FA(r.Context(), domain.Login2FAInput{
@@ -44,21 +42,19 @@ func (h *HTTPEndpoint) Login2FA(w http.ResponseWriter, r *http.Request) {
 		Code:         req.Code,
 	})
 	if err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, err
 	}
 
-	pkgrouter.Response(w, Login2FAResponse{
+	return Login2FAResponse{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
-	})
+	}, nil
 }
 
-func (h *HTTPEndpoint) Register(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPEndpoint) Register(ctx context.Context, r *http.Request) (any, error) {
 	var req RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, pkgerror.NewInvalidFormat()
 	}
 
 	resp, err := h.uc.Register(r.Context(), domain.RegisterInput{
@@ -67,83 +63,87 @@ func (h *HTTPEndpoint) Register(w http.ResponseWriter, r *http.Request) {
 		FullName: req.FullName,
 	})
 	if err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, err
 	}
 
-	pkgrouter.Response(w, RegisterResponse{IsNeedVerify: resp.IsNeedVerify})
+	return RegisterResponse{IsNeedVerify: resp.IsNeedVerify}, nil
 }
 
-func (h *HTTPEndpoint) Logout(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPEndpoint) ForgotPassword(ctx context.Context, r *http.Request) (any, error) {
+	var req ForgotPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, pkgerror.NewInvalidFormat()
+	}
+
+	resp, err := h.uc.ForgotPassword(r.Context(), domain.ForgotPasswordInput{
+		Email: req.Email,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ForgotPasswordResponse{Success: resp.Success}, nil
+}
+
+func (h *HTTPEndpoint) Logout(ctx context.Context, r *http.Request) (any, error) {
 	var req LogoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.Logout(r.Context(), domain.LogoutInput{
-		RefreshToken: req.RefreshToken,
-	})
-	if err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+	if err := h.uc.Logout(r.Context(), domain.LogoutInput{RefreshToken: req.RefreshToken}); err != nil {
+		return nil, err
 	}
 
-	pkgrouter.Response(w, LogoutResponse{Success: resp.Success})
+	return nil, nil
 }
 
-func (h *HTTPEndpoint) ChangePassword(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPEndpoint) ChangePassword(ctx context.Context, r *http.Request) (any, error) {
 	var req ChangePasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.ChangePassword(r.Context(), domain.ChangePasswordInput{
+	if err := h.uc.ChangePassword(r.Context(), domain.ChangePasswordInput{
 		CurrentPassword: req.CurrentPassword,
 		NewPassword:     req.NewPassword,
-	})
-	if err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+	}); err != nil {
+		return nil, err
 	}
 
-	pkgrouter.Response(w, ChangePasswordResponse{Success: resp.Success})
+	return nil, nil
 }
 
-func (h *HTTPEndpoint) RefreshToken(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPEndpoint) RefreshToken(ctx context.Context, r *http.Request) (any, error) {
 	var req RefreshTokenRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, pkgerror.NewInvalidFormat()
 	}
 
 	resp, err := h.uc.RefreshToken(r.Context(), domain.RefreshTokenInput{
 		RefreshToken: req.RefreshToken,
 	})
 	if err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, err
 	}
 
-	pkgrouter.Response(w, RefreshTokenResponse{
+	return RefreshTokenResponse{
 		AccessToken:  resp.AccessToken,
 		RefreshToken: resp.RefreshToken,
-	})
+	}, nil
 }
 
-func (h *HTTPEndpoint) Profile(w http.ResponseWriter, r *http.Request) {
+func (h *HTTPEndpoint) Profile(ctx context.Context, r *http.Request) (any, error) {
 	resp, err := h.uc.Profile(r.Context(), domain.ProfileInput{})
 	if err != nil {
-		pkgrouter.ResponseError(w, err)
-		return
+		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	pkgrouter.Response(w, ProfileResponse{
+	return ProfileResponse{
 		ID:        resp.ID,
 		Email:     resp.Email,
 		FullName:  resp.FullName,
 		AvatarURL: resp.AvatarURL,
 		Status:    resp.Status,
-	})
+	}, nil
 }

@@ -4,21 +4,25 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 )
 
 //nolint:gochecknoglobals // global for fast reuse
 var skipEndpoints = map[string]map[string]struct{}{
-	"POST": {
-		"/auth/login":         struct{}{},
-		"/auth/login-2fa":     struct{}{},
-		"/auth/register":      struct{}{},
-		"/auth/refresh-token": struct{}{},
+	http.MethodPost: {
+		"/auth/login":           struct{}{},
+		"/auth/login-2fa":       struct{}{},
+		"/auth/register":        struct{}{},
+		"/auth/forgot-password": struct{}{},
+		"/auth/refresh-token":   struct{}{},
+	},
+	http.MethodGet: {
+		"/":       struct{}{},
+		"/health": struct{}{},
 	},
 }
 
-func Authentication(uid pkgjwt.JWT[pkgjwt.AccessTokenPayload]) func(next http.Handler) http.Handler {
+func middlewareAuthentication(verifier pkgjwt.JWT[pkgjwt.AccessTokenPayload]) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			path := r.URL.Path
@@ -30,15 +34,15 @@ func Authentication(uid pkgjwt.JWT[pkgjwt.AccessTokenPayload]) func(next http.Ha
 				}
 			}
 
-			token := parseAuthHeader(r.Header.Get("Authorization"))
-			if token == "" {
-				ResponseError(w, pkgerror.ErrUnauthenticated)
+			p := strings.Fields(r.Header.Get("Authorization"))
+			if len(p) != 2 || !strings.EqualFold(p[0], "Bearer") {
+				writeJSON(w, map[string]string{"message": "authentication required"}, http.StatusUnauthorized)
 				return
 			}
 
-			claims, err := uid.Verify(token)
+			claims, err := verifier.Verify(p[1])
 			if err != nil {
-				ResponseError(w, pkgerror.ErrUnauthenticated)
+				writeJSON(w, map[string]string{"message": "invalid or expired token"}, http.StatusUnauthorized)
 				return
 			}
 
@@ -46,21 +50,4 @@ func Authentication(uid pkgjwt.JWT[pkgjwt.AccessTokenPayload]) func(next http.Ha
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
-}
-
-func parseAuthHeader(header string) string {
-	if header == "" {
-		return ""
-	}
-
-	parts := strings.SplitN(header, " ", 2)
-	if len(parts) != 2 {
-		return ""
-	}
-
-	if !strings.EqualFold(parts[0], "Bearer") {
-		return ""
-	}
-
-	return strings.TrimSpace(parts[1])
 }

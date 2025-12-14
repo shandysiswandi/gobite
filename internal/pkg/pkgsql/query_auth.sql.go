@@ -7,6 +7,8 @@ package pkgsql
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const mfaFactorGetByUserID = `-- name: MfaFactorGetByUserID :many
@@ -176,4 +178,24 @@ func (q *Queries) UserGetByID(ctx context.Context, id int64) (User, error) {
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const userPasswordResetCreate = `-- name: UserPasswordResetCreate :exec
+
+INSERT INTO user_password_resets (user_id, token, expires_at)
+VALUES ($1, $2, $3)
+`
+
+type UserPasswordResetCreateParams struct {
+	UserID    int64
+	Token     string
+	ExpiresAt pgtype.Timestamptz
+}
+
+// ----- ----- ----- ----- -----
+// user_password_resets table
+// ----- ----- ----- ----- -----
+func (q *Queries) UserPasswordResetCreate(ctx context.Context, arg UserPasswordResetCreateParams) error {
+	_, err := q.db.Exec(ctx, userPasswordResetCreate, arg.UserID, arg.Token, arg.ExpiresAt)
+	return err
 }
