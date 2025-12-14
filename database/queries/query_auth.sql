@@ -26,6 +26,14 @@ FOR UPDATE;
 INSERT INTO users (id, email, full_name, avatar_url, status)
 VALUES (@id, @email, @full_name, @avatar_url, @status);
 
+-- name: UserUpdateStatus :exec
+UPDATE users
+SET status = @new_status
+WHERE
+    id = @id AND
+    status = @old_status AND
+    deleted_at IS NULL;
+
 -- ----- ----- ----- ----- -----
 -- user_credentials table
 -- ----- ----- ----- ----- -----

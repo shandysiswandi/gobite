@@ -30,6 +30,7 @@ type repoDB interface {
 	// users
 	UserGetByEmail(ctx context.Context, email string) (*domain.User, error)
 	UserGetByID(ctx context.Context, id int64) (*domain.User, error)
+	UserUpdateStatus(ctx context.Context, id int64, oldStatus, newStatus domain.UserStatus) error
 
 	// user_credentials
 	UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error)

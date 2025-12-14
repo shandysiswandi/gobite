@@ -109,20 +109,20 @@ func (r *Router) Use(mws ...Middleware) {
 	r.mws = append(r.mws, mws...)
 }
 
-func (r *Router) GET(path string, h Handler) {
-	r.endpoint(http.MethodGet, path, h)
+func (r *Router) GET(path string, h Handler, mws ...Middleware) {
+	r.endpoint(http.MethodGet, path, h, mws...)
 }
 
-func (r *Router) POST(path string, h Handler) {
-	r.endpoint(http.MethodPost, path, h)
+func (r *Router) POST(path string, h Handler, mws ...Middleware) {
+	r.endpoint(http.MethodPost, path, h, mws...)
 }
 
-func (r *Router) PUT(path string, h Handler) {
-	r.endpoint(http.MethodPut, path, h)
+func (r *Router) PUT(path string, h Handler, mws ...Middleware) {
+	r.endpoint(http.MethodPut, path, h, mws...)
 }
 
-func (r *Router) PATCH(path string, h Handler) {
-	r.endpoint(http.MethodPatch, path, h)
+func (r *Router) PATCH(path string, h Handler, mws ...Middleware) {
+	r.endpoint(http.MethodPatch, path, h, mws...)
 }
 
 func (r *Router) Handle(method, path string, h http.Handler, mws ...Middleware) {

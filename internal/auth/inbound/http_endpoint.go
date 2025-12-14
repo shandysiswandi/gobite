@@ -37,7 +37,7 @@ func (h *HTTPEndpoint) Login2FA(ctx context.Context, r *http.Request) (any, erro
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.Login2FA(r.Context(), domain.Login2FAInput{
+	resp, err := h.uc.Login2FA(ctx, domain.Login2FAInput{
 		PreAuthToken: req.PreAuthToken,
 		Code:         req.Code,
 	})
@@ -57,7 +57,7 @@ func (h *HTTPEndpoint) Register(ctx context.Context, r *http.Request) (any, erro
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.Register(r.Context(), domain.RegisterInput{
+	resp, err := h.uc.Register(ctx, domain.RegisterInput{
 		Email:    req.Email,
 		Password: req.Password,
 		FullName: req.FullName,
@@ -69,13 +69,26 @@ func (h *HTTPEndpoint) Register(ctx context.Context, r *http.Request) (any, erro
 	return RegisterResponse{IsNeedVerify: resp.IsNeedVerify}, nil
 }
 
+func (h *HTTPEndpoint) EmailVerify(ctx context.Context, r *http.Request) (any, error) {
+	var req EmailVerifyRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, pkgerror.NewInvalidFormat()
+	}
+
+	if err := h.uc.EmailVerify(ctx, domain.EmailVerifyInput{Token: req.Token}); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 func (h *HTTPEndpoint) ForgotPassword(ctx context.Context, r *http.Request) (any, error) {
 	var req ForgotPasswordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.ForgotPassword(r.Context(), domain.ForgotPasswordInput{
+	resp, err := h.uc.ForgotPassword(ctx, domain.ForgotPasswordInput{
 		Email: req.Email,
 	})
 	if err != nil {
@@ -91,7 +104,7 @@ func (h *HTTPEndpoint) ResetPassword(ctx context.Context, r *http.Request) (any,
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	if err := h.uc.ResetPassword(r.Context(), domain.ResetPasswordInput{
+	if err := h.uc.ResetPassword(ctx, domain.ResetPasswordInput{
 		Token:       req.Token,
 		NewPassword: req.NewPassword,
 	}); err != nil {
@@ -107,7 +120,7 @@ func (h *HTTPEndpoint) Logout(ctx context.Context, r *http.Request) (any, error)
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	if err := h.uc.Logout(r.Context(), domain.LogoutInput{RefreshToken: req.RefreshToken}); err != nil {
+	if err := h.uc.Logout(ctx, domain.LogoutInput{RefreshToken: req.RefreshToken}); err != nil {
 		return nil, err
 	}
 
@@ -120,7 +133,7 @@ func (h *HTTPEndpoint) ChangePassword(ctx context.Context, r *http.Request) (any
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	if err := h.uc.ChangePassword(r.Context(), domain.ChangePasswordInput{
+	if err := h.uc.ChangePassword(ctx, domain.ChangePasswordInput{
 		CurrentPassword: req.CurrentPassword,
 		NewPassword:     req.NewPassword,
 	}); err != nil {
@@ -136,7 +149,7 @@ func (h *HTTPEndpoint) RefreshToken(ctx context.Context, r *http.Request) (any, 
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.RefreshToken(r.Context(), domain.RefreshTokenInput{
+	resp, err := h.uc.RefreshToken(ctx, domain.RefreshTokenInput{
 		RefreshToken: req.RefreshToken,
 	})
 	if err != nil {
@@ -150,7 +163,7 @@ func (h *HTTPEndpoint) RefreshToken(ctx context.Context, r *http.Request) (any, 
 }
 
 func (h *HTTPEndpoint) Profile(ctx context.Context, r *http.Request) (any, error) {
-	resp, err := h.uc.Profile(r.Context(), domain.ProfileInput{})
+	resp, err := h.uc.Profile(ctx, domain.ProfileInput{})
 	if err != nil {
 		return nil, pkgerror.NewInvalidFormat()
 	}

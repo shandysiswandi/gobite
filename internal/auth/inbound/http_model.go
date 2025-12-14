@@ -22,6 +22,10 @@ type RegisterResponse struct {
 	IsNeedVerify bool `json:"is_need_verify"`
 }
 
+type EmailVerifyRequest struct {
+	Token string `json:"token"`
+}
+
 type ForgotPasswordRequest struct {
 	Email string `json:"email"`
 }

@@ -106,6 +106,7 @@ func (w *statusRecorder) Flush() {
 	}
 }
 
+//nolint:err113 // it use dynamic error
 func (w *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	h, ok := w.ResponseWriter.(http.Hijacker)
 	if !ok {

@@ -271,3 +271,23 @@ func (q *Queries) UserPasswordResetMarkUsed(ctx context.Context, arg UserPasswor
 	_, err := q.db.Exec(ctx, userPasswordResetMarkUsed, arg.UsedAt, arg.ID)
 	return err
 }
+
+const userUpdateStatus = `-- name: UserUpdateStatus :exec
+UPDATE users
+SET status = $1
+WHERE
+    id = $2 AND
+    status = $3 AND
+    deleted_at IS NULL
+`
+
+type UserUpdateStatusParams struct {
+	NewStatus int16
+	ID        int64
+	OldStatus int16
+}
+
+func (q *Queries) UserUpdateStatus(ctx context.Context, arg UserUpdateStatusParams) error {
+	_, err := q.db.Exec(ctx, userUpdateStatus, arg.NewStatus, arg.ID, arg.OldStatus)
+	return err
+}

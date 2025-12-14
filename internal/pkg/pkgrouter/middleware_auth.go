@@ -13,9 +13,10 @@ var skipEndpoints = map[string]map[string]struct{}{
 		"/auth/login":           struct{}{},
 		"/auth/login-2fa":       struct{}{},
 		"/auth/register":        struct{}{},
+		"/auth/refresh-token":   struct{}{},
+		"/auth/email/verify":    struct{}{},
 		"/auth/password/forgot": struct{}{},
 		"/auth/password/reset":  struct{}{},
-		"/auth/refresh-token":   struct{}{},
 	},
 	http.MethodGet: {
 		"/":       struct{}{},

@@ -20,6 +20,8 @@ func RegisterHTTPEndpoint(r *pkgrouter.Router, uc usecase) {
 	r.POST("/auth/register", end.Register)
 	r.POST("/auth/refresh-token", end.RefreshToken)
 	r.POST("/auth/logout", end.Logout) // need authenticated
+	//
+	r.POST("/auth/email/verify", end.EmailVerify)
 
 	// Password Management
 	r.POST("/auth/password/forgot", end.ForgotPassword)
@@ -34,6 +36,7 @@ type usecase interface {
 	Login(ctx context.Context, in domain.LoginInput) (*domain.LoginOutput, error)
 	Login2FA(ctx context.Context, in domain.Login2FAInput) (*domain.Login2FAOutput, error)
 	Register(ctx context.Context, in domain.RegisterInput) (*domain.RegisterOutput, error)
+	EmailVerify(ctx context.Context, in domain.EmailVerifyInput) error
 	ForgotPassword(ctx context.Context, in domain.ForgotPasswordInput) (*domain.ForgotPasswordOutput, error)
 	ResetPassword(ctx context.Context, in domain.ResetPasswordInput) error
 	Logout(ctx context.Context, in domain.LogoutInput) error

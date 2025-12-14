@@ -10,6 +10,7 @@ import (
 	"strings"
 )
 
+//nolint:errcheck,gosec,contextcheck // ignore error
 func middlewareRecoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -30,7 +31,6 @@ func middlewareRecoverer(next http.Handler) http.Handler {
 				lines := strings.Split(string(debug.Stack()), "\n")
 				printStackTrace(lines)
 
-				//nolint:errcheck,gosec // ignore error
 				json.NewEncoder(w).Encode(map[string]string{
 					"message": "Internal server error",
 				})

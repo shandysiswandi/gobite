@@ -52,3 +52,11 @@ func (s *SQL) UserGetByID(ctx context.Context, id int64) (*domain.User, error) {
 
 	return userFromSQL(result), nil
 }
+
+func (s *SQL) UserUpdateStatus(ctx context.Context, id int64, oldStatus, newStatus domain.UserStatus) error {
+	return s.query.UserUpdateStatus(ctx, pkgsql.UserUpdateStatusParams{
+		ID:        id,
+		NewStatus: newStatus.Value(),
+		OldStatus: oldStatus.Value(),
+	})
+}
