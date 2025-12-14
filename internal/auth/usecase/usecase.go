@@ -43,6 +43,9 @@ type repoDB interface {
 
 	// user_password_resets
 	UserPasswordResetCreate(ctx context.Context, userID int64, token string, expiresAt time.Time) error
+
+	// user + user_password_resets (transaction)
+	UserPasswordResetConsume(ctx context.Context, token string, newHash string, now time.Time) error
 }
 
 type Usecase struct {

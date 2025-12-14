@@ -17,7 +17,7 @@ func (s *SQL) UserRegistration(ctx context.Context, user domain.User, hash strin
 	}
 	defer func() {
 		if rErr := tx.Rollback(ctx); rErr != nil && !errors.Is(rErr, pgx.ErrTxClosed) {
-			slog.Error("failed to rolback", "error", rErr)
+			slog.ErrorContext(ctx, "failed to rolback", "error", rErr)
 		}
 	}()
 

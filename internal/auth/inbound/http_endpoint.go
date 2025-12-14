@@ -85,6 +85,22 @@ func (h *HTTPEndpoint) ForgotPassword(ctx context.Context, r *http.Request) (any
 	return ForgotPasswordResponse{Success: resp.Success}, nil
 }
 
+func (h *HTTPEndpoint) ResetPassword(ctx context.Context, r *http.Request) (any, error) {
+	var req ResetPasswordRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		return nil, pkgerror.NewInvalidFormat()
+	}
+
+	if err := h.uc.ResetPassword(r.Context(), domain.ResetPasswordInput{
+		Token:       req.Token,
+		NewPassword: req.NewPassword,
+	}); err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 func (h *HTTPEndpoint) Logout(ctx context.Context, r *http.Request) (any, error) {
 	var req LogoutRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

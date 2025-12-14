@@ -30,6 +30,11 @@ type ForgotPasswordResponse struct {
 	Success bool `json:"success"`
 }
 
+type ResetPasswordRequest struct {
+	Token       string `json:"token"`
+	NewPassword string `json:"new_password"`
+}
+
 type Login2FARequest struct {
 	PreAuthToken string `json:"pre_auth_token"`
 	Code         string `json:"code"`

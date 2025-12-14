@@ -14,6 +14,14 @@ WHERE
     id = @id AND 
     deleted_at IS NULL;
 
+-- name: UserGetValidByIDForUpdate :one
+SELECT * FROM users 
+WHERE 
+    id = @id AND 
+    status = 1 AND -- mean: user status is active
+    deleted_at IS NULL
+FOR UPDATE;
+
 -- name: UserCreate :exec
 INSERT INTO users (id, email, full_name, avatar_url, status)
 VALUES (@id, @email, @full_name, @avatar_url, @status);
@@ -44,6 +52,22 @@ WHERE user_id = @user_id;
 -- name: UserPasswordResetCreate :exec
 INSERT INTO user_password_resets (user_id, token, expires_at)
 VALUES (@user_id, @token, @expires_at);
+
+-- name: UserPasswordResetGetValidForUpdate :one
+SELECT *
+FROM user_password_resets 
+WHERE
+    token = @token AND
+    used_at IS NULL AND
+    expires_at > @now
+FOR UPDATE;
+
+-- name: UserPasswordResetMarkUsed :exec
+UPDATE user_password_resets
+SET used_at = @used_at
+WHERE
+    id = @id AND
+    used_at IS NULL;
 
 -- ----- ----- ----- ----- -----
 -- mfa_factors table

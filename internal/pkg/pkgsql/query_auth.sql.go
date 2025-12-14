@@ -180,6 +180,31 @@ func (q *Queries) UserGetByID(ctx context.Context, id int64) (User, error) {
 	return i, err
 }
 
+const userGetValidByIDForUpdate = `-- name: UserGetValidByIDForUpdate :one
+SELECT id, email, full_name, avatar_url, status, deleted_at, created_at, updated_at FROM users 
+WHERE 
+    id = $1 AND 
+    status = 1 AND -- mean: user status is active
+    deleted_at IS NULL
+FOR UPDATE
+`
+
+func (q *Queries) UserGetValidByIDForUpdate(ctx context.Context, id int64) (User, error) {
+	row := q.db.QueryRow(ctx, userGetValidByIDForUpdate, id)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.FullName,
+		&i.AvatarUrl,
+		&i.Status,
+		&i.DeletedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const userPasswordResetCreate = `-- name: UserPasswordResetCreate :exec
 
 INSERT INTO user_password_resets (user_id, token, expires_at)
@@ -197,5 +222,52 @@ type UserPasswordResetCreateParams struct {
 // ----- ----- ----- ----- -----
 func (q *Queries) UserPasswordResetCreate(ctx context.Context, arg UserPasswordResetCreateParams) error {
 	_, err := q.db.Exec(ctx, userPasswordResetCreate, arg.UserID, arg.Token, arg.ExpiresAt)
+	return err
+}
+
+const userPasswordResetGetValidForUpdate = `-- name: UserPasswordResetGetValidForUpdate :one
+SELECT id, user_id, token, expires_at, used_at, created_at
+FROM user_password_resets 
+WHERE
+    token = $1 AND
+    used_at IS NULL AND
+    expires_at > $2
+FOR UPDATE
+`
+
+type UserPasswordResetGetValidForUpdateParams struct {
+	Token string
+	Now   pgtype.Timestamptz
+}
+
+func (q *Queries) UserPasswordResetGetValidForUpdate(ctx context.Context, arg UserPasswordResetGetValidForUpdateParams) (UserPasswordReset, error) {
+	row := q.db.QueryRow(ctx, userPasswordResetGetValidForUpdate, arg.Token, arg.Now)
+	var i UserPasswordReset
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Token,
+		&i.ExpiresAt,
+		&i.UsedAt,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const userPasswordResetMarkUsed = `-- name: UserPasswordResetMarkUsed :exec
+UPDATE user_password_resets
+SET used_at = $1
+WHERE
+    id = $2 AND
+    used_at IS NULL
+`
+
+type UserPasswordResetMarkUsedParams struct {
+	UsedAt pgtype.Timestamptz
+	ID     int64
+}
+
+func (q *Queries) UserPasswordResetMarkUsed(ctx context.Context, arg UserPasswordResetMarkUsedParams) error {
+	_, err := q.db.Exec(ctx, userPasswordResetMarkUsed, arg.UsedAt, arg.ID)
 	return err
 }
