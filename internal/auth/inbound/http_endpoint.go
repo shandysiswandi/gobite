@@ -9,6 +9,10 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
+type HTTPEndpoint struct {
+	uc usecase
+}
+
 func (h *HTTPEndpoint) Login(ctx context.Context, r *http.Request) (any, error) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

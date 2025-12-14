@@ -1,4 +1,4 @@
-package pkgmessage
+package pkgmessaging
 
 import (
 	"context"
@@ -107,7 +107,7 @@ func (p *PubSub) Publish(ctx context.Context, destination string, msg OutgoingMe
 	}, nil
 }
 
-func (p *PubSub) Consume(ctx context.Context, source string, handler Handler, opts ConsumeOptions) error {
+func (p *PubSub) Consume(ctx context.Context, source string, handler Handler, opts ...ConsumeOption) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -121,10 +121,11 @@ func (p *PubSub) Consume(ctx context.Context, source string, handler Handler, op
 		return err
 	}
 
+	co := newConsumeOptions(opts...)
 	sub := p.client.Subscriber(source)
-	applyPubSubReceiveSettings(sub, opts)
+	applyPubSubReceiveSettings(sub, co)
 
-	autoAck := autoAckFromConsumeOptions(opts)
+	autoAck := autoAckFromConsumeOptions(co)
 	return sub.Receive(ctx, makePubSubHandler(source, handler, autoAck))
 }
 
@@ -156,12 +157,12 @@ func (p *PubSub) ensurePubSubOpen() error {
 	return nil
 }
 
-func autoAckFromConsumeOptions(opts ConsumeOptions) bool {
-	autoAck := opts.AutoAck
-	if opts.Params == nil {
+func autoAckFromConsumeOptions(opts consumeOptions) bool {
+	autoAck := opts.autoAck
+	if opts.params == nil {
 		return autoAck
 	}
-	v, ok := opts.Params["auto_ack"]
+	v, ok := opts.params["auto_ack"]
 	if !ok {
 		return autoAck
 	}
@@ -193,11 +194,14 @@ func makePubSubHandler(subscription string, handler Handler, autoAck bool) func(
 	}
 }
 
-func applyPubSubReceiveSettings(sub *pubsub.Subscriber, opts ConsumeOptions) {
-	if opts.Concurrency > 0 {
-		sub.ReceiveSettings.NumGoroutines = opts.Concurrency
+func applyPubSubReceiveSettings(sub *pubsub.Subscriber, opts consumeOptions) {
+	if opts.concurrency > 0 {
+		sub.ReceiveSettings.NumGoroutines = opts.concurrency
 	}
-	if opts.MaxInFlight > 0 {
-		sub.ReceiveSettings.MaxOutstandingMessages = opts.MaxInFlight
+	if opts.maxInFlight > 0 {
+		sub.ReceiveSettings.MaxOutstandingMessages = opts.maxInFlight
+	}
+	if opts.ackDeadline > 0 {
+		sub.ReceiveSettings.MaxDurationPerAckExtension = opts.ackDeadline
 	}
 }

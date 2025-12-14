@@ -15,7 +15,6 @@ require (
 	github.com/nats-io/nats.go v1.47.0
 	github.com/nsqio/go-nsq v1.1.0
 	github.com/pquerna/otp v1.5.0
-	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/segmentio/kafka-go v0.4.49
 	github.com/spf13/viper v1.21.0

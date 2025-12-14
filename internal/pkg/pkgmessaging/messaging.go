@@ -1,4 +1,4 @@
-package pkgmessage
+package pkgmessaging
 
 import (
 	"context"
@@ -11,7 +11,7 @@ var ErrUnsupported = errors.New("pkgmessage: unsupported operation")
 
 // Messaging is a broker-agnostic client that can publish and consume messages.
 //
-// Implementations can wrap Google Pub/Sub, NSQ, Kafka, RabbitMQ, NATS
+// Implementations can wrap Google Pub/Sub, NSQ, Kafka, NATS
 // or any other messaging system.
 type Messaging interface {
 	io.Closer
@@ -27,7 +27,7 @@ type Publisher interface {
 
 // Consumer consumes messages from a source (subscription/channel/queue/subject).
 type Consumer interface {
-	Consume(ctx context.Context, source string, handler Handler, opts ConsumeOptions) error
+	Consume(ctx context.Context, source string, handler Handler, opts ...ConsumeOption) error
 }
 
 // Handler processes a received message.
@@ -35,37 +35,6 @@ type Consumer interface {
 // Returning a non-nil error does not imply any particular broker behavior.
 // Implementations may choose to ack, nack/requeue, or leave the message unacked.
 type Handler func(ctx context.Context, msg Message) error
-
-// ConsumeOptions provides common consumption settings across brokers.
-// Fields that do not apply to a given broker should be ignored.
-type ConsumeOptions struct {
-	Concurrency int
-
-	// Group is commonly used for Kafka consumer groups.
-	Group string
-
-	// Channel is commonly used for NSQ channels.
-	Channel string
-
-	// QueueGroup is commonly used for NATS queue subscriptions.
-	QueueGroup string
-
-	// Exchange and RoutingKey are commonly used for RabbitMQ bindings.
-	Exchange   string
-	RoutingKey string
-
-	// AutoAck indicates messages are acknowledged automatically by the broker/client.
-	AutoAck bool
-
-	// MaxInFlight is a generic "outstanding/unacked messages" limit.
-	MaxInFlight int
-
-	// AckDeadline is commonly used for Google Pub/Sub.
-	AckDeadline time.Duration
-
-	// Params carries broker-specific settings (e.g. "auto_commit", "prefetch").
-	Params map[string]string
-}
 
 // OutgoingMessage represents a broker-agnostic message to be published.
 type OutgoingMessage struct {
@@ -82,9 +51,6 @@ type OutgoingMessage struct {
 
 	// OrderingKey is commonly used by Google Pub/Sub.
 	OrderingKey string
-
-	// RoutingKey is commonly used by RabbitMQ.
-	RoutingKey string
 
 	// Delay is used for deferred delivery (when supported).
 	Delay time.Duration

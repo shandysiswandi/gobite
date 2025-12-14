@@ -13,11 +13,14 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
+
+type repoMessaging interface {
+	PublishUserRegistration(ctx context.Context, msg domain.UserRegistrationMessage) error
+}
 
 type repoCache interface {
 	SaveTokensID(ctx context.Context, acID, refID string) error
@@ -50,8 +53,9 @@ type repoDB interface {
 }
 
 type Usecase struct {
-	repoDB    repoDB
-	repoCache repoCache
+	repoDB        repoDB
+	repoCache     repoCache
+	repoMessaging repoMessaging
 
 	validator pkgvalidator.Validator
 	cfg       pkgconfig.Config
@@ -60,7 +64,6 @@ type Usecase struct {
 	uuid      pkguid.StringID
 	totp      pkgotp.OTP
 	clock     pkgclock.Clocker
-	mail      pkgmail.Mail
 
 	jwtTempToken    pkgjwt.JWT[map[string]any]
 	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -68,8 +71,9 @@ type Usecase struct {
 }
 
 type Dependency struct {
-	RepoDB    repoDB
-	RepoCache repoCache
+	RepoDB        repoDB
+	RepoCache     repoCache
+	RepoMessaging repoMessaging
 
 	Validator pkgvalidator.Validator
 	Config    pkgconfig.Config
@@ -78,7 +82,6 @@ type Dependency struct {
 	UUID      pkguid.StringID
 	Totp      pkgotp.OTP
 	Clock     pkgclock.Clocker
-	Mail      pkgmail.Mail
 
 	JWTTempToken    pkgjwt.JWT[map[string]any]
 	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -89,6 +92,7 @@ func NewAuth(dep Dependency) *Usecase {
 	return &Usecase{
 		repoDB:          dep.RepoDB,
 		repoCache:       dep.RepoCache,
+		repoMessaging:   dep.RepoMessaging,
 		validator:       dep.Validator,
 		hash:            dep.Hash,
 		cfg:             dep.Config,
@@ -96,7 +100,6 @@ func NewAuth(dep Dependency) *Usecase {
 		uuid:            dep.UUID,
 		totp:            dep.Totp,
 		clock:           dep.Clock,
-		mail:            dep.Mail,
 		jwtTempToken:    dep.JWTTempToken,
 		jwtAccessToken:  dep.JWTAccessToken,
 		jwtRefreshToken: dep.JWTRefreshToken,

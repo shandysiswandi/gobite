@@ -1,4 +1,4 @@
-package pkgmessage
+package pkgmessaging
 
 import (
 	"context"
@@ -123,8 +123,9 @@ func (k *Kafka) Publish(ctx context.Context, destination string, msg OutgoingMes
 	}, nil
 }
 
-func (k *Kafka) Consume(ctx context.Context, source string, handler Handler, opts ConsumeOptions) error {
-	if err := validateKafkaConsume(ctx, source, handler, opts); err != nil {
+func (k *Kafka) Consume(ctx context.Context, source string, handler Handler, opts ...ConsumeOption) error {
+	co := newConsumeOptions(opts...)
+	if err := validateKafkaConsume(ctx, source, handler, co); err != nil {
 		return err
 	}
 	if err := k.ensureOpen(); err != nil {
@@ -134,13 +135,13 @@ func (k *Kafka) Consume(ctx context.Context, source string, handler Handler, opt
 	consumeCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	reader := k.newReader(source, opts)
+	reader := k.newReader(source, co)
 	if err := k.addReader(reader); err != nil {
 		return errors.Join(err, reader.Close())
 	}
 
-	autoAck := opts.AutoAck
-	concurrency := concurrencyOrDefault(opts.Concurrency, 1)
+	autoAck := co.autoAck
+	concurrency := concurrencyOrDefault(co.concurrency, 1)
 
 	msgCh := make(chan kafka.Message)
 	errCh := make(chan error, 1)
@@ -196,10 +197,10 @@ func (k *Kafka) getWriter(topic string) *kafka.Writer {
 	return w
 }
 
-func (k *Kafka) newReader(topic string, opts ConsumeOptions) *kafka.Reader {
+func (k *Kafka) newReader(topic string, opts consumeOptions) *kafka.Reader {
 	cfg := kafka.ReaderConfig{
 		Brokers:  k.brokers,
-		GroupID:  opts.Group,
+		GroupID:  opts.group,
 		Topic:    topic,
 		MaxBytes: 10e6,
 		Dialer:   k.dialer,
@@ -207,7 +208,7 @@ func (k *Kafka) newReader(topic string, opts ConsumeOptions) *kafka.Reader {
 	if k.readerConfig != nil {
 		cfg = *k.readerConfig
 		cfg.Topic = topic
-		cfg.GroupID = opts.Group
+		cfg.GroupID = opts.group
 		if len(cfg.Brokers) == 0 {
 			cfg.Brokers = k.brokers
 		}
@@ -266,7 +267,7 @@ func trySendErr(ch chan<- error, err error) {
 	}
 }
 
-func validateKafkaConsume(ctx context.Context, topic string, handler Handler, opts ConsumeOptions) error {
+func validateKafkaConsume(ctx context.Context, topic string, handler Handler, opts consumeOptions) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -276,7 +277,7 @@ func validateKafkaConsume(ctx context.Context, topic string, handler Handler, op
 	if handler == nil {
 		return ErrKafkaHandlerRequired
 	}
-	if opts.Group == "" {
+	if opts.group == "" {
 		return ErrKafkaGroupRequired
 	}
 	return nil

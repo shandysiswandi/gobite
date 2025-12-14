@@ -1,7 +1,10 @@
 // Package pkgmail defines contracts for sending email messages.
 package pkgmail
 
-import "context"
+import (
+	"context"
+	"io"
+)
 
 // Message represents an email payload.
 type Message struct {
@@ -16,6 +19,7 @@ type Message struct {
 
 // Mail abstracts an email provider.
 type Mail interface {
+	io.Closer
 	// Send dispatches the given message using the underlying provider.
 	Send(ctx context.Context, msg Message) error
 }

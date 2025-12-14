@@ -7,8 +7,17 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
 )
 
-type HTTPEndpoint struct {
-	uc usecase
+type usecase interface {
+	Login(ctx context.Context, in domain.LoginInput) (*domain.LoginOutput, error)
+	Login2FA(ctx context.Context, in domain.Login2FAInput) (*domain.Login2FAOutput, error)
+	Register(ctx context.Context, in domain.RegisterInput) (*domain.RegisterOutput, error)
+	EmailVerify(ctx context.Context, in domain.EmailVerifyInput) error
+	ForgotPassword(ctx context.Context, in domain.ForgotPasswordInput) (*domain.ForgotPasswordOutput, error)
+	ResetPassword(ctx context.Context, in domain.ResetPasswordInput) error
+	Logout(ctx context.Context, in domain.LogoutInput) error
+	ChangePassword(ctx context.Context, in domain.ChangePasswordInput) error
+	RefreshToken(ctx context.Context, in domain.RefreshTokenInput) (*domain.RefreshTokenOutput, error)
+	Profile(ctx context.Context, in domain.ProfileInput) (*domain.ProfileOutput, error)
 }
 
 func RegisterHTTPEndpoint(r *pkgrouter.Router, uc usecase) {
@@ -30,17 +39,4 @@ func RegisterHTTPEndpoint(r *pkgrouter.Router, uc usecase) {
 
 	// User Profile (need authenticated)
 	r.GET("/profile", end.Profile)
-}
-
-type usecase interface {
-	Login(ctx context.Context, in domain.LoginInput) (*domain.LoginOutput, error)
-	Login2FA(ctx context.Context, in domain.Login2FAInput) (*domain.Login2FAOutput, error)
-	Register(ctx context.Context, in domain.RegisterInput) (*domain.RegisterOutput, error)
-	EmailVerify(ctx context.Context, in domain.EmailVerifyInput) error
-	ForgotPassword(ctx context.Context, in domain.ForgotPasswordInput) (*domain.ForgotPasswordOutput, error)
-	ResetPassword(ctx context.Context, in domain.ResetPasswordInput) error
-	Logout(ctx context.Context, in domain.LogoutInput) error
-	ChangePassword(ctx context.Context, in domain.ChangePasswordInput) error
-	RefreshToken(ctx context.Context, in domain.RefreshTokenInput) (*domain.RefreshTokenOutput, error)
-	Profile(ctx context.Context, in domain.ProfileInput) (*domain.ProfileOutput, error)
 }

@@ -28,6 +28,10 @@ func (a *App) Start() <-chan struct{} {
 
 		<-sigint
 
+		if a.cancel != nil {
+			a.cancel()
+		}
+
 		terminateChan <- struct{}{}
 		close(terminateChan)
 
@@ -38,10 +42,12 @@ func (a *App) Start() <-chan struct{} {
 }
 
 func (a *App) Stop(ctx context.Context) {
-	for name, closer := range a.closerFn {
-		if err := closer(ctx); err != nil {
-			slog.ErrorContext(ctx, "failed to close resources", "name", name, "error", err)
-		}
+	if a.cancel != nil {
+		a.cancel()
+	}
+
+	if err := a.httpServer.Shutdown(ctx); err != nil {
+		slog.ErrorContext(ctx, "failed to close resources", "name", "HTTP Server", "error", err)
 	}
 
 	slog.InfoContext(ctx, "waiting for all goroutine to finish")
@@ -49,4 +55,13 @@ func (a *App) Stop(ctx context.Context) {
 		slog.ErrorContext(ctx, "error from goroutines executions", "error", err)
 	}
 	slog.InfoContext(ctx, "all goroutines have finished successfully")
+
+	for name, closer := range a.closerFn {
+		if name == "HTTP Server" {
+			continue
+		}
+		if err := closer(ctx); err != nil {
+			slog.ErrorContext(ctx, "failed to close resources", "name", name, "error", err)
+		}
+	}
 }

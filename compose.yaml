@@ -49,6 +49,9 @@ services:
     image: nsqio/nsq:v1.3.0
     pull_policy: missing
     command: /nsqlookupd
+    ports:
+      - "4160:4160"
+      - "4161:4161"
     networks:
       - gobite-network
     healthcheck:
@@ -64,8 +67,11 @@ services:
     command: >
       /nsqd
       --lookupd-tcp-address=nsqlookupd:4160
-      --broadcast-address=nsqd
+      --broadcast-address=localhost
       --data-path=/data
+    ports:
+      - "4150:4150"
+      - "4151:4151"
     volumes:
       - nsq_gobite_data:/data
     depends_on:
@@ -79,20 +85,6 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-
-  nsqadmin:
-    image: nsqio/nsq:v1.3.0
-    pull_policy: missing
-    command: >
-      /nsqadmin
-      --lookupd-http-address=nsqlookupd:4161
-    ports:
-      - "4171:4171" # Web UI
-    depends_on:
-      nsqlookupd:
-        condition: service_healthy
-    networks:
-      - gobite-network
 
 volumes:
   postgres_gobite_data:

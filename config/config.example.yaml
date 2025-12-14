@@ -36,6 +36,45 @@ mail:
   from: no-replay@gobite.com
 
 # -----------------------------------------------------------------------------
+# Messaging Configuration
+# -----------------------------------------------------------------------------
+messaging:
+  nsq:
+    # Address of the NSQ daemon (nsqd) used by producers to publish messages.
+    # Default NSQ TCP port is 4150.
+    producer_addr: "localhost:4150"
+
+    # List of nsqd addresses consumers can connect to directly.
+    # Use this when NOT using nsqlookupd (e.g. local development).
+    consumer_nsqd_addrs: "localhost:4150"
+
+    # List of nsqlookupd addresses used for service discovery.
+    # Recommended for production deployments with multiple nsqd nodes.
+    consumer_lookupd_addrs: "localhost:4161"
+
+    producer_config:
+      # Maximum number of messages that can be sent asynchronously
+      # without receiving a response from nsqd.
+      max_in_flight: 50
+
+      # Timeout for establishing TCP connections to nsqd. In seconds
+      dial_timeout: 5
+
+      # Maximum duration to wait for a response when reading from nsqd. In seconds
+      read_timeout: 60
+
+      # Maximum duration to wait when writing data to nsqd. In seconds
+      write_timeout: 60
+
+    consumer_config:
+      # Maximum number of messages that can be processed concurrently.
+      # This should match the number of worker goroutines in your consumer.
+      max_in_flight: 100
+
+      # Interval at which the consumer polls nsqlookupd for new producers. In seconds
+      lookupd_poll_interval: 60
+
+# -----------------------------------------------------------------------------
 # JWT Configuration
 # -----------------------------------------------------------------------------
 jwt:

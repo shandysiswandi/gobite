@@ -12,6 +12,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkglog"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgmessaging"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
@@ -20,6 +21,9 @@ import (
 )
 
 type App struct {
+	ctx    context.Context
+	cancel context.CancelFunc
+
 	// configuration
 	config pkgconfig.Config
 
@@ -30,7 +34,6 @@ type App struct {
 	hash            pkghash.Hash
 	uid             pkguid.NumberID
 	uuid            pkguid.StringID
-	mail            pkgmail.Mail
 	totp            pkgotp.OTP
 	jwtTempToken    pkgjwt.JWT[map[string]any]
 	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
@@ -39,6 +42,8 @@ type App struct {
 	// resources
 	dbConn    *pgxpool.Pool
 	cacheConn *redis.Client
+	mail      pkgmail.Mail
+	messaging pkgmessaging.Messaging
 
 	// server
 	router     *pkgrouter.Router
@@ -51,7 +56,11 @@ type App struct {
 func New() *App {
 	pkglog.InitLogging()
 
-	app := &App{}
+	ctx, cancel := context.WithCancel(context.Background())
+	app := &App{
+		ctx:    ctx,
+		cancel: cancel,
+	}
 
 	app.initConfig()
 	app.initLibraries()
@@ -59,6 +68,7 @@ func New() *App {
 	app.initDatabase()
 	app.initCache()
 	app.initMail()
+	app.initMessaging()
 	app.initHTTPServer()
 	app.initModules()
 	app.initClosers()

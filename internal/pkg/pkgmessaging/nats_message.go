@@ -1,4 +1,4 @@
-package pkgmessage
+package pkgmessaging
 
 import (
 	"context"

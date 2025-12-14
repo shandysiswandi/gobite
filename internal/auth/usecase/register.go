@@ -44,5 +44,13 @@ func (s *Usecase) Register(ctx context.Context, in domain.RegisterInput) (*domai
 		return nil, pkgerror.NewServer(err)
 	}
 
+	if err := s.repoMessaging.PublishUserRegistration(ctx, domain.UserRegistrationMessage{
+		UserID:   user.ID,
+		Email:    user.Email,
+		FullName: user.FullName,
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to publish user registration", "user_id", user.ID, "error", err)
+	}
+
 	return &domain.RegisterOutput{IsNeedVerify: true}, nil
 }

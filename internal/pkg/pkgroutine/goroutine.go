@@ -28,7 +28,7 @@ func NewManager(maxGoroutine int) *Manager {
 	}
 }
 
-func (g *Manager) Go(ctx context.Context, f func(c context.Context) error) {
+func (g *Manager) Go(pCtx context.Context, f func(ctx context.Context) error) {
 	select {
 	case g.sema <- struct{}{}: // Acquire a semaphore slot
 		g.wg.Go(func() {
@@ -37,15 +37,15 @@ func (g *Manager) Go(ctx context.Context, f func(c context.Context) error) {
 
 				if rvr := recover(); rvr != nil {
 					stack := debug.Stack()
-					slog.ErrorContext(ctx, "panic occurred in goroutine", "stack", string(stack))
+					slog.ErrorContext(pCtx, "panic occurred in goroutine", "stack", string(stack))
 				}
 			}()
 
 			select {
-			case <-ctx.Done():
-				slog.WarnContext(ctx, "goroutine canceled", "because", ctx.Err())
+			case <-pCtx.Done():
+				slog.WarnContext(pCtx, "goroutine canceled", "because", pCtx.Err())
 			default:
-				if err := f(ctx); err != nil {
+				if err := f(pCtx); err != nil {
 					g.mu.Lock()
 					g.errs = append(g.errs, err)
 					g.mu.Unlock()
@@ -54,7 +54,7 @@ func (g *Manager) Go(ctx context.Context, f func(c context.Context) error) {
 		})
 
 	default:
-		slog.WarnContext(ctx, "Maximum goroutine limit reached, failed to start new goroutine")
+		slog.WarnContext(pCtx, "Maximum goroutine limit reached, failed to start new goroutine")
 	}
 }
 

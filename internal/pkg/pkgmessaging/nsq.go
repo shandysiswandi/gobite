@@ -1,4 +1,4 @@
-package pkgmessage
+package pkgmessaging
 
 import (
 	"context"
@@ -54,6 +54,8 @@ func NewNSQ(cfg NSQConfig) (*NSQ, error) {
 		if err != nil {
 			return nil, fmt.Errorf("pkgmessage: nsq new producer: %w", err)
 		}
+		p.SetLoggerLevel(nsq.LogLevelError)
+
 		producer = p
 	}
 
@@ -124,7 +126,7 @@ func (n *NSQ) Publish(ctx context.Context, destination string, msg OutgoingMessa
 	}, nil
 }
 
-func (n *NSQ) Consume(ctx context.Context, source string, handler Handler, opts ConsumeOptions) error {
+func (n *NSQ) Consume(ctx context.Context, source string, handler Handler, opts ...ConsumeOption) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -138,7 +140,8 @@ func (n *NSQ) Consume(ctx context.Context, source string, handler Handler, opts 
 		return ErrNSQConsumerAddrsRequired
 	}
 
-	consumer, concurrency, autoAck, err := n.newNSQConsumer(source, opts)
+	co := newConsumeOptions(opts...)
+	consumer, concurrency, autoAck, err := n.newNSQConsumer(source, co)
 	if err != nil {
 		return err
 	}
@@ -158,20 +161,20 @@ func (n *NSQ) Consume(ctx context.Context, source string, handler Handler, opts 
 	return waitNSQConsumer(ctx, consumer)
 }
 
-func (n *NSQ) newNSQConsumer(topic string, opts ConsumeOptions) (*nsq.Consumer, int, bool, error) {
-	channel := opts.Channel
+func (n *NSQ) newNSQConsumer(topic string, opts consumeOptions) (*nsq.Consumer, int, bool, error) {
+	channel := opts.channel
 	if channel == "" {
 		return nil, 0, false, ErrNSQChannelRequired
 	}
 
-	concurrency := opts.Concurrency
+	concurrency := opts.concurrency
 	if concurrency <= 0 {
 		concurrency = 1
 	}
 
-	autoAck := opts.AutoAck
-	if opts.Params != nil {
-		if v, ok := opts.Params["auto_ack"]; ok {
+	autoAck := opts.autoAck
+	if opts.params != nil {
+		if v, ok := opts.params["auto_ack"]; ok {
 			if b, err := strconv.ParseBool(v); err == nil {
 				autoAck = b
 			}
@@ -179,8 +182,8 @@ func (n *NSQ) newNSQConsumer(topic string, opts ConsumeOptions) (*nsq.Consumer, 
 	}
 
 	ccfg := *n.consumerConfig
-	if opts.MaxInFlight > 0 {
-		ccfg.MaxInFlight = opts.MaxInFlight
+	if opts.maxInFlight > 0 {
+		ccfg.MaxInFlight = opts.maxInFlight
 	} else if ccfg.MaxInFlight < concurrency {
 		ccfg.MaxInFlight = concurrency
 	}
@@ -189,6 +192,7 @@ func (n *NSQ) newNSQConsumer(topic string, opts ConsumeOptions) (*nsq.Consumer, 
 	if err != nil {
 		return nil, 0, false, fmt.Errorf("pkgmessage: nsq new consumer: %w", err)
 	}
+	consumer.SetLoggerLevel(nsq.LogLevelError)
 
 	return consumer, concurrency, autoAck, nil
 }

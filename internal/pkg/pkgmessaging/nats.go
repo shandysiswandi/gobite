@@ -1,4 +1,4 @@
-package pkgmessage
+package pkgmessaging
 
 import (
 	"context"
@@ -104,7 +104,7 @@ func (n *NATS) Publish(ctx context.Context, destination string, msg OutgoingMess
 	}, nil
 }
 
-func (n *NATS) Consume(ctx context.Context, source string, handler Handler, opts ConsumeOptions) error {
+func (n *NATS) Consume(ctx context.Context, source string, handler Handler, opts ...ConsumeOption) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -115,7 +115,8 @@ func (n *NATS) Consume(ctx context.Context, source string, handler Handler, opts
 		return ErrNATSHandlerRequired
 	}
 
-	sub, wg, err := n.subscribeNATS(ctx, source, handler, opts)
+	co := newConsumeOptions(opts...)
+	sub, wg, err := n.subscribeNATS(ctx, source, handler, co)
 	if err != nil {
 		return err
 	}
@@ -148,10 +149,10 @@ func (n *NATS) addNATSSub(sub *nats.Subscription) error {
 	return nil
 }
 
-func (n *NATS) subscribeNATS(ctx context.Context, subject string, handler Handler, opts ConsumeOptions) (*nats.Subscription, *sync.WaitGroup, error) {
+func (n *NATS) subscribeNATS(ctx context.Context, subject string, handler Handler, opts consumeOptions) (*nats.Subscription, *sync.WaitGroup, error) {
 	queueGroup := queueGroupFromConsumeOptions(opts)
-	concurrency := concurrencyOrDefault(opts.Concurrency, 1)
-	autoAck := opts.AutoAck
+	concurrency := concurrencyOrDefault(opts.concurrency, 1)
+	autoAck := opts.autoAck
 
 	sem := make(chan struct{}, concurrency)
 	var wg sync.WaitGroup
@@ -196,10 +197,10 @@ func (n *NATS) waitNATSConsume(ctx context.Context, sub *nats.Subscription, wg *
 	return errors.Join(ctx.Err(), uerr)
 }
 
-func queueGroupFromConsumeOptions(opts ConsumeOptions) string {
-	queueGroup := opts.QueueGroup
-	if opts.Params != nil {
-		if v, ok := opts.Params["queue_group"]; ok && v != "" {
+func queueGroupFromConsumeOptions(opts consumeOptions) string {
+	queueGroup := opts.queueGroup
+	if opts.params != nil {
+		if v, ok := opts.params["queue_group"]; ok && v != "" {
 			queueGroup = v
 		}
 	}

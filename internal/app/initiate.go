@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/nsqio/go-nsq"
 	"github.com/pquerna/otp"
 	"github.com/redis/go-redis/v9"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
@@ -15,6 +16,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/pkgmessaging"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
@@ -163,6 +165,34 @@ func (a *App) initMail() {
 	a.mail = mail
 }
 
+func (a *App) initMessaging() {
+	// consumer config
+	ccfg := nsq.NewConfig()
+	ccfg.MaxInFlight = int(a.config.GetInt("messaging.nsq.consumer_config.max_in_flight"))
+	ccfg.LookupdPollInterval = time.Duration(a.config.GetInt("messaging.nsq.consumer_config.lookupd_poll_interval")) * time.Second
+
+	// producer config
+	pcfg := nsq.NewConfig()
+	pcfg.MaxInFlight = int(a.config.GetInt("messaging.nsq.producer_config.max_in_flight"))
+	pcfg.DialTimeout = time.Duration(a.config.GetInt("messaging.nsq.producer_config.dial_timeout")) * time.Second
+	pcfg.ReadTimeout = time.Duration(a.config.GetInt("messaging.nsq.producer_config.read_timeout")) * time.Second
+	pcfg.WriteTimeout = time.Duration(a.config.GetInt("messaging.nsq.producer_config.write_timeout")) * time.Second
+
+	nsq, err := pkgmessaging.NewNSQ(pkgmessaging.NSQConfig{
+		ProducerAddr:        a.config.GetString("messaging.nsq.producer_addr"),
+		ConsumerNSQDAddrs:   a.config.GetArray("messaging.nsq.consumer_nsqd_addrs"),
+		ConsumerLookupdAddr: a.config.GetArray("messaging.nsq.consumer_lookupd_addrs"),
+		ProducerConfig:      pcfg,
+		ConsumerConfig:      ccfg,
+	})
+	if err != nil {
+		slog.Error("failed to init messaging", "error", err)
+		os.Exit(1)
+	}
+
+	a.messaging = nsq
+}
+
 func (a *App) initHTTPServer() {
 	a.router = pkgrouter.NewRouter(a.uuid, a.jwtAccessToken)
 
@@ -189,6 +219,9 @@ func (a *App) initClosers() {
 		},
 		"Redis": func(context.Context) error {
 			return a.cacheConn.Close()
+		},
+		"Messaging": func(context.Context) error {
+			return a.messaging.Close()
 		},
 		"Config": func(context.Context) error {
 			return a.config.Close()

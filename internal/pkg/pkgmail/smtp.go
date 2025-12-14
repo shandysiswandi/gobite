@@ -89,6 +89,10 @@ func (s *SMTP) Send(ctx context.Context, msg Message) error {
 	return smtp.SendMail(s.addr, s.auth, from, recipients, []byte(raw))
 }
 
+func (s *SMTP) Close() error {
+	return nil
+}
+
 func buildBody(msg Message) (body string, contentType string) {
 	if msg.HTMLBody != "" && msg.TextBody != "" {
 		boundary := "gobite-boundary"
