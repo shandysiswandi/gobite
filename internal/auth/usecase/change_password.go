@@ -4,12 +4,20 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 )
 
-func (s *Usecase) ChangePassword(ctx context.Context, in domain.ChangePasswordInput) error {
+type ChangePasswordInput struct {
+	CurrentPassword string `validate:"required"`
+	NewPassword     string `validate:"required,password"`
+}
+
+type ChangePasswordOutput struct {
+	Success bool
+}
+
+func (s *Usecase) ChangePassword(ctx context.Context, in ChangePasswordInput) error {
 	clm := pkgjwt.GetAuth[pkgjwt.AccessTokenPayload](ctx)
 
 	if err := s.validator.Validate(in); err != nil {

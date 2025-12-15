@@ -9,6 +9,7 @@ import (
 	"context"
 
 	"github.com/jackc/pgx/v5/pgtype"
+	auth_entity "github.com/shandysiswandi/gobite/internal/auth/entity"
 )
 
 const mfaFactorGetByUserID = `-- name: MfaFactorGetByUserID :many
@@ -67,7 +68,7 @@ type UserCreateParams struct {
 	Email     string
 	FullName  string
 	AvatarUrl string
-	Status    int16
+	Status    auth_entity.UserStatus
 }
 
 func (q *Queries) UserCreate(ctx context.Context, arg UserCreateParams) error {
@@ -282,9 +283,9 @@ WHERE
 `
 
 type UserUpdateStatusParams struct {
-	NewStatus int16
+	NewStatus auth_entity.UserStatus
 	ID        int64
-	OldStatus int16
+	OldStatus auth_entity.UserStatus
 }
 
 func (q *Queries) UserUpdateStatus(ctx context.Context, arg UserUpdateStatusParams) error {

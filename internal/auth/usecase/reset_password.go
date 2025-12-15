@@ -5,11 +5,15 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
-func (s *Usecase) ResetPassword(ctx context.Context, in domain.ResetPasswordInput) error {
+type ResetPasswordInput struct {
+	Token       string `validate:"required"`
+	NewPassword string `validate:"required,password"`
+}
+
+func (s *Usecase) ResetPassword(ctx context.Context, in ResetPasswordInput) error {
 	if err := s.validator.Validate(in); err != nil {
 		return pkgerror.NewInvalidInput(err)
 	}

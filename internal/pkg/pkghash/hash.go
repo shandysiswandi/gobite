@@ -1,4 +1,3 @@
-// Package pkghash provides interfaces and implementations for hashing and verifying strings.
 package pkghash
 
 // Hash defines methods for hashing and verifying strings.

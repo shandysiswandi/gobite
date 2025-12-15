@@ -1,6 +1,3 @@
-// Package pkgconfig provides an interface for accessing configuration values from
-// various sources such as environment variables, configuration files, or remote
-// configuration services.
 package pkgconfig
 
 import "io"

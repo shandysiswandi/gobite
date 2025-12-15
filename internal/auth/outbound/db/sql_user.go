@@ -5,18 +5,18 @@ import (
 	"errors"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgsql"
 )
 
-func userFromSQL(u pkgsql.User) *domain.User {
-	item := &domain.User{
+func userFromSQL(u pkgsql.User) *entity.User {
+	item := &entity.User{
 		ID:        u.ID,
 		Email:     u.Email,
 		FullName:  u.FullName,
 		AvatarURL: u.AvatarUrl,
-		Status:    domain.UserStatus(u.Status),
+		Status:    u.Status,
 	}
 
 	if u.CreatedAt.Valid {
@@ -29,7 +29,7 @@ func userFromSQL(u pkgsql.User) *domain.User {
 	return item
 }
 
-func (s *SQL) UserGetByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (s *SQL) UserGetByEmail(ctx context.Context, email string) (*entity.User, error) {
 	result, err := s.query.UserGetByEmail(ctx, email)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, pkgerror.ErrNotFound
@@ -41,7 +41,7 @@ func (s *SQL) UserGetByEmail(ctx context.Context, email string) (*domain.User, e
 	return userFromSQL(result), nil
 }
 
-func (s *SQL) UserGetByID(ctx context.Context, id int64) (*domain.User, error) {
+func (s *SQL) UserGetByID(ctx context.Context, id int64) (*entity.User, error) {
 	result, err := s.query.UserGetByID(ctx, id)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, pkgerror.ErrNotFound
@@ -53,10 +53,10 @@ func (s *SQL) UserGetByID(ctx context.Context, id int64) (*domain.User, error) {
 	return userFromSQL(result), nil
 }
 
-func (s *SQL) UserUpdateStatus(ctx context.Context, id int64, oldStatus, newStatus domain.UserStatus) error {
+func (s *SQL) UserUpdateStatus(ctx context.Context, id int64, oldStatus, newStatus entity.UserStatus) error {
 	return s.query.UserUpdateStatus(ctx, pkgsql.UserUpdateStatusParams{
 		ID:        id,
-		NewStatus: newStatus.Value(),
-		OldStatus: oldStatus.Value(),
+		NewStatus: newStatus,
+		OldStatus: oldStatus,
 	})
 }

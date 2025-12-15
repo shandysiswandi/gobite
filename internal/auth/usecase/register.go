@@ -6,11 +6,21 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
-func (s *Usecase) Register(ctx context.Context, in domain.RegisterInput) (*domain.RegisterOutput, error) {
+type RegisterInput struct {
+	Email    string `validate:"required,lowercase,email"`
+	Password string `validate:"required,password"`
+	FullName string `validate:"required,min=2,max=100,alphaspace"`
+}
+
+type RegisterOutput struct {
+	IsNeedVerify bool
+}
+
+func (s *Usecase) Register(ctx context.Context, in RegisterInput) (*RegisterOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
 		return nil, pkgerror.NewInvalidInput(err)
 	}
@@ -31,12 +41,12 @@ func (s *Usecase) Register(ctx context.Context, in domain.RegisterInput) (*domai
 		return nil, pkgerror.NewServer(err)
 	}
 
-	user := domain.User{
+	user := entity.User{
 		ID:        s.uid.Generate(),
 		Email:     in.Email,
 		FullName:  strings.TrimSpace(in.FullName),
 		AvatarURL: "",
-		Status:    domain.UserStatusUnverified,
+		Status:    entity.UserStatusUnverified,
 	}
 
 	if err := s.repoDB.UserRegistration(ctx, user, string(hashedPassword)); err != nil {
@@ -44,7 +54,7 @@ func (s *Usecase) Register(ctx context.Context, in domain.RegisterInput) (*domai
 		return nil, pkgerror.NewServer(err)
 	}
 
-	if err := s.repoMessaging.PublishUserRegistration(ctx, domain.UserRegistrationMessage{
+	if err := s.repoMessaging.PublishUserRegistration(ctx, entity.UserRegistrationMessage{
 		UserID:   user.ID,
 		Email:    user.Email,
 		FullName: user.FullName,
@@ -52,5 +62,5 @@ func (s *Usecase) Register(ctx context.Context, in domain.RegisterInput) (*domai
 		slog.ErrorContext(ctx, "failed to publish user registration", "user_id", user.ID, "error", err)
 	}
 
-	return &domain.RegisterOutput{IsNeedVerify: true}, nil
+	return &RegisterOutput{IsNeedVerify: true}, nil
 }

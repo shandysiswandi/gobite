@@ -4,11 +4,19 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
-func (s *Usecase) RefreshToken(ctx context.Context, in domain.RefreshTokenInput) (*domain.RefreshTokenOutput, error) {
+type RefreshTokenInput struct {
+	RefreshToken string `validate:"required"`
+}
+
+type RefreshTokenOutput struct {
+	AccessToken  string
+	RefreshToken string
+}
+
+func (s *Usecase) RefreshToken(ctx context.Context, in RefreshTokenInput) (*RefreshTokenOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
 		return nil, pkgerror.NewInvalidInput(err)
 	}
@@ -44,7 +52,7 @@ func (s *Usecase) RefreshToken(ctx context.Context, in domain.RefreshTokenInput)
 		return nil, pkgerror.NewServer(err)
 	}
 
-	return &domain.RefreshTokenOutput{
+	return &RefreshTokenOutput{
 		AccessToken:  acToken,
 		RefreshToken: refToken,
 	}, nil

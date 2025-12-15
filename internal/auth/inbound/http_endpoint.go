@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/usecase"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
 type HTTPEndpoint struct {
-	uc usecase
+	uc uc
 }
 
 func (h *HTTPEndpoint) Login(ctx context.Context, r *http.Request) (any, error) {
@@ -19,7 +19,7 @@ func (h *HTTPEndpoint) Login(ctx context.Context, r *http.Request) (any, error) 
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.Login(ctx, domain.LoginInput{
+	resp, err := h.uc.Login(ctx, usecase.LoginInput{
 		Email:    req.Email,
 		Password: req.Password,
 	})
@@ -41,7 +41,7 @@ func (h *HTTPEndpoint) Login2FA(ctx context.Context, r *http.Request) (any, erro
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.Login2FA(ctx, domain.Login2FAInput{
+	resp, err := h.uc.Login2FA(ctx, usecase.Login2FAInput{
 		PreAuthToken: req.PreAuthToken,
 		Code:         req.Code,
 	})
@@ -61,7 +61,7 @@ func (h *HTTPEndpoint) Register(ctx context.Context, r *http.Request) (any, erro
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.Register(ctx, domain.RegisterInput{
+	resp, err := h.uc.Register(ctx, usecase.RegisterInput{
 		Email:    req.Email,
 		Password: req.Password,
 		FullName: req.FullName,
@@ -79,7 +79,7 @@ func (h *HTTPEndpoint) EmailVerify(ctx context.Context, r *http.Request) (any, e
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	if err := h.uc.EmailVerify(ctx, domain.EmailVerifyInput{Token: req.Token}); err != nil {
+	if err := h.uc.EmailVerify(ctx, usecase.EmailVerifyInput{Token: req.Token}); err != nil {
 		return nil, err
 	}
 
@@ -92,7 +92,7 @@ func (h *HTTPEndpoint) ForgotPassword(ctx context.Context, r *http.Request) (any
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.ForgotPassword(ctx, domain.ForgotPasswordInput{
+	resp, err := h.uc.ForgotPassword(ctx, usecase.ForgotPasswordInput{
 		Email: req.Email,
 	})
 	if err != nil {
@@ -108,7 +108,7 @@ func (h *HTTPEndpoint) ResetPassword(ctx context.Context, r *http.Request) (any,
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	if err := h.uc.ResetPassword(ctx, domain.ResetPasswordInput{
+	if err := h.uc.ResetPassword(ctx, usecase.ResetPasswordInput{
 		Token:       req.Token,
 		NewPassword: req.NewPassword,
 	}); err != nil {
@@ -124,7 +124,7 @@ func (h *HTTPEndpoint) Logout(ctx context.Context, r *http.Request) (any, error)
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	if err := h.uc.Logout(ctx, domain.LogoutInput{RefreshToken: req.RefreshToken}); err != nil {
+	if err := h.uc.Logout(ctx, usecase.LogoutInput{RefreshToken: req.RefreshToken}); err != nil {
 		return nil, err
 	}
 
@@ -137,7 +137,7 @@ func (h *HTTPEndpoint) ChangePassword(ctx context.Context, r *http.Request) (any
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	if err := h.uc.ChangePassword(ctx, domain.ChangePasswordInput{
+	if err := h.uc.ChangePassword(ctx, usecase.ChangePasswordInput{
 		CurrentPassword: req.CurrentPassword,
 		NewPassword:     req.NewPassword,
 	}); err != nil {
@@ -153,7 +153,7 @@ func (h *HTTPEndpoint) RefreshToken(ctx context.Context, r *http.Request) (any, 
 		return nil, pkgerror.NewInvalidFormat()
 	}
 
-	resp, err := h.uc.RefreshToken(ctx, domain.RefreshTokenInput{
+	resp, err := h.uc.RefreshToken(ctx, usecase.RefreshTokenInput{
 		RefreshToken: req.RefreshToken,
 	})
 	if err != nil {
@@ -167,7 +167,7 @@ func (h *HTTPEndpoint) RefreshToken(ctx context.Context, r *http.Request) (any, 
 }
 
 func (h *HTTPEndpoint) Profile(ctx context.Context, r *http.Request) (any, error) {
-	resp, err := h.uc.Profile(ctx, domain.ProfileInput{})
+	resp, err := h.uc.Profile(ctx, usecase.ProfileInput{})
 	if err != nil {
 		return nil, pkgerror.NewInvalidFormat()
 	}

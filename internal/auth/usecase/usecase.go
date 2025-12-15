@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
@@ -19,7 +19,7 @@ import (
 )
 
 type repoMessaging interface {
-	PublishUserRegistration(ctx context.Context, msg domain.UserRegistrationMessage) error
+	PublishUserRegistration(ctx context.Context, msg entity.UserRegistrationMessage) error
 }
 
 type repoCache interface {
@@ -31,19 +31,19 @@ type repoCache interface {
 
 type repoDB interface {
 	// users
-	UserGetByEmail(ctx context.Context, email string) (*domain.User, error)
-	UserGetByID(ctx context.Context, id int64) (*domain.User, error)
-	UserUpdateStatus(ctx context.Context, id int64, oldStatus, newStatus domain.UserStatus) error
+	UserGetByEmail(ctx context.Context, email string) (*entity.User, error)
+	UserGetByID(ctx context.Context, id int64) (*entity.User, error)
+	UserUpdateStatus(ctx context.Context, id int64, oldStatus, newStatus entity.UserStatus) error
 
 	// user_credentials
-	UserCredentialGetByUserID(ctx context.Context, userID int64) (*domain.UserCredential, error)
+	UserCredentialGetByUserID(ctx context.Context, userID int64) (*entity.UserCredential, error)
 	UserCredentialUpdate(ctx context.Context, userID int64, hash string) error
 
 	// user + user_credentials (transaction)
-	UserRegistration(ctx context.Context, user domain.User, hash string) error
+	UserRegistration(ctx context.Context, user entity.User, hash string) error
 
 	// mfa_factors
-	MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.MfaFactor, error)
+	MfaFactorGetByUserID(ctx context.Context, userID int64) ([]entity.MfaFactor, error)
 
 	// user_password_resets
 	UserPasswordResetCreate(ctx context.Context, userID int64, token string, expiresAt time.Time) error
@@ -106,7 +106,7 @@ func NewAuth(dep Dependency) *Usecase {
 	}
 }
 
-func (s *Usecase) getUserByEmail(ctx context.Context, email string) (*domain.User, error) {
+func (s *Usecase) getUserByEmail(ctx context.Context, email string) (*entity.User, error) {
 	user, err := s.repoDB.UserGetByEmail(ctx, email)
 	if errors.Is(err, pkgerror.ErrNotFound) {
 		slog.WarnContext(ctx, "user account not found")
@@ -124,7 +124,7 @@ func (s *Usecase) getUserByEmail(ctx context.Context, email string) (*domain.Use
 	return user, nil
 }
 
-func (s *Usecase) getUserByID(ctx context.Context, userID int64) (*domain.User, error) {
+func (s *Usecase) getUserByID(ctx context.Context, userID int64) (*entity.User, error) {
 	user, err := s.repoDB.UserGetByID(ctx, userID)
 	if errors.Is(err, pkgerror.ErrNotFound) {
 		slog.WarnContext(ctx, "user account not found", "user_id", userID)
@@ -142,13 +142,13 @@ func (s *Usecase) getUserByID(ctx context.Context, userID int64) (*domain.User, 
 	return user, nil
 }
 
-func (s *Usecase) ensureUserActive(ctx context.Context, user *domain.User) error {
-	if user.Status == domain.UserStatusUnverified {
+func (s *Usecase) ensureUserActive(ctx context.Context, user *entity.User) error {
+	if user.Status == entity.UserStatusUnverified {
 		slog.WarnContext(ctx, "user not verified", "user_id", user.ID)
 		return pkgerror.NewBusiness("user account is not verified", pkgerror.CodeUnauthorized)
 	}
 
-	if user.Status == domain.UserStatusBanned {
+	if user.Status == entity.UserStatusBanned {
 		slog.WarnContext(ctx, "user account banned", "user_id", user.ID)
 		return pkgerror.NewBusiness("user account is banned", pkgerror.CodeUnauthorized)
 	}
@@ -156,7 +156,7 @@ func (s *Usecase) ensureUserActive(ctx context.Context, user *domain.User) error
 	return nil
 }
 
-func (s *Usecase) getCredential(ctx context.Context, userID int64) (*domain.UserCredential, error) {
+func (s *Usecase) getCredential(ctx context.Context, userID int64) (*entity.UserCredential, error) {
 	userCred, err := s.repoDB.UserCredentialGetByUserID(ctx, userID)
 	if errors.Is(err, pkgerror.ErrNotFound) {
 		slog.WarnContext(ctx, "user credential not found", "user_id", userID)
@@ -170,7 +170,7 @@ func (s *Usecase) getCredential(ctx context.Context, userID int64) (*domain.User
 	return userCred, nil
 }
 
-func (s *Usecase) issueTokens(ctx context.Context, user *domain.User) (acToken, acJTI, refToken, refJTI string, err error) {
+func (s *Usecase) issueTokens(ctx context.Context, user *entity.User) (acToken, acJTI, refToken, refJTI string, err error) {
 	subject := strconv.FormatInt(user.ID, 10)
 
 	acToken, acJTI, err = s.jwtAccessToken.Generate(subject, pkgjwt.AccessTokenPayload{

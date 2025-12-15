@@ -3,11 +3,20 @@ package usecase
 import (
 	"context"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 )
 
-func (s *Usecase) Profile(ctx context.Context, in domain.ProfileInput) (*domain.ProfileOutput, error) {
+type ProfileInput struct{}
+
+type ProfileOutput struct {
+	ID        int64
+	Email     string
+	FullName  string
+	AvatarURL string
+	Status    string
+}
+
+func (s *Usecase) Profile(ctx context.Context, in ProfileInput) (*ProfileOutput, error) {
 	clm := pkgjwt.GetAuth[pkgjwt.AccessTokenPayload](ctx)
 
 	user, err := s.getUserByID(ctx, clm.Payload().UserID)
@@ -15,7 +24,7 @@ func (s *Usecase) Profile(ctx context.Context, in domain.ProfileInput) (*domain.
 		return nil, err
 	}
 
-	return &domain.ProfileOutput{
+	return &ProfileOutput{
 		ID:        user.ID,
 		Email:     user.Email,
 		FullName:  user.FullName,

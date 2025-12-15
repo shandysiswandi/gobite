@@ -13,8 +13,12 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
 )
 
+// Handler is the application-style handler used by this router.
+//
+// It returns a response payload (that will be JSON encoded) or an error.
 type Handler func(ctx context.Context, r *http.Request) (any, error)
 
+// Router is an http.Handler that wraps httprouter and a middleware chain.
 type Router struct {
 	hr         *httprouter.Router
 	errorCodec func(ctx context.Context, w http.ResponseWriter, err error)
@@ -22,6 +26,7 @@ type Router struct {
 	mws        []Middleware
 }
 
+// NewRouter builds the default application router with standard middleware.
 func NewRouter(uuid Generator, jwtAccess pkgjwt.JWT[pkgjwt.AccessTokenPayload]) *Router {
 	ro := &Router{
 		hr: &httprouter.Router{
@@ -105,26 +110,32 @@ func NewRouter(uuid Generator, jwtAccess pkgjwt.JWT[pkgjwt.AccessTokenPayload]) 
 	return ro
 }
 
+// Use appends middleware to the existing middleware stack.
 func (r *Router) Use(mws ...Middleware) {
 	r.mws = append(r.mws, mws...)
 }
 
+// GET registers a GET endpoint using the application Handler signature.
 func (r *Router) GET(path string, h Handler, mws ...Middleware) {
 	r.endpoint(http.MethodGet, path, h, mws...)
 }
 
+// POST registers a POST endpoint using the application Handler signature.
 func (r *Router) POST(path string, h Handler, mws ...Middleware) {
 	r.endpoint(http.MethodPost, path, h, mws...)
 }
 
+// PUT registers a PUT endpoint using the application Handler signature.
 func (r *Router) PUT(path string, h Handler, mws ...Middleware) {
 	r.endpoint(http.MethodPut, path, h, mws...)
 }
 
+// PATCH registers a PATCH endpoint using the application Handler signature.
 func (r *Router) PATCH(path string, h Handler, mws ...Middleware) {
 	r.endpoint(http.MethodPatch, path, h, mws...)
 }
 
+// Handle registers a raw http.Handler with the router.
 func (r *Router) Handle(method, path string, h http.Handler, mws ...Middleware) {
 	r.hr.Handler(method, path, Chain(h, append(r.mws, mws...)...))
 }

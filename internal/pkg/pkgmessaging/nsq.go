@@ -13,35 +13,43 @@ import (
 )
 
 var (
-	ErrNSQTopicRequired         = errors.New("pkgmessage: nsq topic is required")
-	ErrNSQChannelRequired       = errors.New("pkgmessage: nsq channel is required")
-	ErrNSQHandlerRequired       = errors.New("pkgmessage: nsq handler is required")
-	ErrNSQProducerAddrRequired  = errors.New("pkgmessage: nsq producer address is required")
+	// ErrNSQTopicRequired is returned when the topic is empty.
+	ErrNSQTopicRequired = errors.New("pkgmessage: nsq topic is required")
+	// ErrNSQChannelRequired is returned when the channel is empty.
+	ErrNSQChannelRequired = errors.New("pkgmessage: nsq channel is required")
+	// ErrNSQHandlerRequired is returned when Consume is called with a nil handler.
+	ErrNSQHandlerRequired = errors.New("pkgmessage: nsq handler is required")
+	// ErrNSQProducerAddrRequired is returned when the producer address is missing.
+	ErrNSQProducerAddrRequired = errors.New("pkgmessage: nsq producer address is required")
+	// ErrNSQConsumerAddrsRequired is returned when no NSQD/lookupd consumer addresses are configured.
 	ErrNSQConsumerAddrsRequired = errors.New("pkgmessage: nsq consumer nsqd/lookupd addresses are required")
 )
 
+// NSQConfig configures the NSQ implementation.
 type NSQConfig struct {
 	ProducerAddr string
 
-	ConsumerNSQDAddrs   []string
-	ConsumerLookupdAddr []string
+	ConsumerNSQDAddrs    []string
+	ConsumerLookupdAddrs []string
 
 	ProducerConfig *nsq.Config
 	ConsumerConfig *nsq.Config
 }
 
+// NSQ is a pkgmessaging implementation backed by NSQ.
 type NSQ struct {
 	producer *nsq.Producer
 
-	consumerNSQDAddrs   []string
-	consumerLookupdAddr []string
-	consumerConfig      *nsq.Config
+	consumerNSQDAddrs    []string
+	consumerLookupdAddrs []string
+	consumerConfig       *nsq.Config
 
 	mu        sync.Mutex
 	consumers []*nsq.Consumer
 	closed    bool
 }
 
+// NewNSQ constructs an NSQ messaging client.
 func NewNSQ(cfg NSQConfig) (*NSQ, error) {
 	var producer *nsq.Producer
 	if cfg.ProducerAddr != "" {
@@ -67,9 +75,9 @@ func NewNSQ(cfg NSQConfig) (*NSQ, error) {
 	return &NSQ{
 		producer: producer,
 
-		consumerNSQDAddrs:   append([]string{}, cfg.ConsumerNSQDAddrs...),
-		consumerLookupdAddr: append([]string{}, cfg.ConsumerLookupdAddr...),
-		consumerConfig:      ccfg,
+		consumerNSQDAddrs:    append([]string{}, cfg.ConsumerNSQDAddrs...),
+		consumerLookupdAddrs: append([]string{}, cfg.ConsumerLookupdAddrs...),
+		consumerConfig:       ccfg,
 	}, nil
 }
 
@@ -136,7 +144,7 @@ func (n *NSQ) Consume(ctx context.Context, source string, handler Handler, opts 
 	if handler == nil {
 		return ErrNSQHandlerRequired
 	}
-	if len(n.consumerNSQDAddrs) == 0 && len(n.consumerLookupdAddr) == 0 {
+	if len(n.consumerNSQDAddrs) == 0 && len(n.consumerLookupdAddrs) == 0 {
 		return ErrNSQConsumerAddrsRequired
 	}
 
@@ -209,8 +217,8 @@ func (n *NSQ) addNSQConsumer(consumer *nsq.Consumer) error {
 }
 
 func (n *NSQ) connectNSQConsumer(consumer *nsq.Consumer) error {
-	if len(n.consumerLookupdAddr) > 0 {
-		if err := consumer.ConnectToNSQLookupds(n.consumerLookupdAddr); err != nil {
+	if len(n.consumerLookupdAddrs) > 0 {
+		if err := consumer.ConnectToNSQLookupds(n.consumerLookupdAddrs); err != nil {
 			return fmt.Errorf("pkgmessage: nsq connect lookupd: %w", err)
 		}
 		return nil

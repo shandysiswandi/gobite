@@ -8,3 +8,54 @@ sql:
         package: "pkgsql"
         out: "internal/pkg/pkgsql"
         sql_package: "pgx/v5"
+        overrides:
+          # --- JSON Types ---
+          - column: "notification_delivery_logs.provider_response"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "JSONMap"
+
+          - column: "notifications.data"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "JSONMap"
+
+          - column: "notifications.metadata"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "JSONMap"
+
+          # --- Channel Types ---
+          - column: "notification_user_settings.channel"
+            go_type:
+              type: "Channel"
+              package: "notif_entity"
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+
+          - column: "notification_templates.channel"
+            go_type:
+              type: "Channel"
+              package: "notif_entity"
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+
+          - column: "notification_delivery_logs.channel"
+            go_type:
+              type: "Channel"
+              package: "notif_entity"
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+
+          # --- Status Types ---
+          - column: "users.status"
+            go_type:
+              type: "UserStatus"
+              package: "auth_entity"
+              import: "github.com/shandysiswandi/gobite/internal/auth/entity"
+
+          - column: "notification_delivery_logs.status"
+            go_type:
+              type: "DeliveryStatus"
+              package: "notif_entity"
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"

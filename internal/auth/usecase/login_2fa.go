@@ -5,11 +5,21 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
-func (s *Usecase) Login2FA(ctx context.Context, in domain.Login2FAInput) (*domain.Login2FAOutput, error) {
+type Login2FAInput struct {
+	PreAuthToken string `validate:"required"`
+	Code         string `validate:"required,len=6,numeric"`
+}
+
+type Login2FAOutput struct {
+	AccessToken  string
+	RefreshToken string
+}
+
+func (s *Usecase) Login2FA(ctx context.Context, in Login2FAInput) (*Login2FAOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
 		return nil, pkgerror.NewInvalidInput(err)
 	}
@@ -55,7 +65,7 @@ func (s *Usecase) Login2FA(ctx context.Context, in domain.Login2FAInput) (*domai
 		return nil, pkgerror.NewBusiness("invalid pre auth token", pkgerror.CodeUnauthorized)
 	}
 
-	if factor.Type != domain.MfaTypeTOTP {
+	if factor.Type != entity.MfaTypeTOTP {
 		slog.WarnContext(ctx, "unsupported mfa factor type for login 2fa", "user_id", user.ID, "mfa_id", mfaID, "type", factor.Type)
 		return nil, pkgerror.NewBusiness("invalid pre auth token", pkgerror.CodeUnauthorized)
 	}
@@ -81,7 +91,7 @@ func (s *Usecase) Login2FA(ctx context.Context, in domain.Login2FAInput) (*domai
 		return nil, pkgerror.NewServer(err)
 	}
 
-	return &domain.Login2FAOutput{
+	return &Login2FAOutput{
 		AccessToken:  acToken,
 		RefreshToken: refToken,
 	}, nil
@@ -105,7 +115,7 @@ func pickMFAID(val any) (int64, bool) {
 	}
 }
 
-func findMFAFactorByID(factors []domain.MfaFactor, id int64) (*domain.MfaFactor, bool) {
+func findMFAFactorByID(factors []entity.MfaFactor, id int64) (*entity.MfaFactor, bool) {
 	for _, f := range factors {
 		if f.ID == id {
 			return &f, true

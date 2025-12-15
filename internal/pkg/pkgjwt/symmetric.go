@@ -9,6 +9,7 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
 )
 
+// Symmetric implements JWT signing and verification using an HMAC secret.
 type Symmetric[T any] struct {
 	secret   []byte
 	issuer   string
@@ -19,6 +20,7 @@ type Symmetric[T any] struct {
 	uuid  pkguid.StringID
 }
 
+// NewHS512 constructs a Symmetric JWT implementation using HS512.
 func NewHS512[T any](cfg Config) (*Symmetric[T], error) {
 	if len(cfg.Secret) < 64 {
 		return nil, ErrSigningKeyTooShort

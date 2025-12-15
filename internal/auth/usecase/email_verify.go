@@ -6,13 +6,17 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
 const emailVerifyPurpose = "email_verify"
 
-func (s *Usecase) EmailVerify(ctx context.Context, in domain.EmailVerifyInput) error {
+type EmailVerifyInput struct {
+	Token string `validate:"required"`
+}
+
+func (s *Usecase) EmailVerify(ctx context.Context, in EmailVerifyInput) error {
 	if err := s.validator.Validate(in); err != nil {
 		return pkgerror.NewInvalidInput(err)
 	}
@@ -46,14 +50,14 @@ func (s *Usecase) EmailVerify(ctx context.Context, in domain.EmailVerifyInput) e
 	}
 
 	switch user.Status {
-	case domain.UserStatusActive:
+	case entity.UserStatusActive:
 		return nil
 
-	case domain.UserStatusBanned:
+	case entity.UserStatusBanned:
 		return pkgerror.NewBusiness("user account is banned", pkgerror.CodeForbidden)
 
-	case domain.UserStatusUnverified:
-		if err := s.repoDB.UserUpdateStatus(ctx, userID, domain.UserStatusUnverified, domain.UserStatusActive); err != nil {
+	case entity.UserStatusUnverified:
+		if err := s.repoDB.UserUpdateStatus(ctx, userID, entity.UserStatusUnverified, entity.UserStatusActive); err != nil {
 			slog.ErrorContext(ctx, "failed to repo update user status", "user_id", userID, "error", err)
 			return pkgerror.NewServer(err)
 		}

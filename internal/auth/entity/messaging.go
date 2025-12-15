@@ -1,7 +1,7 @@
-package domain
+package entity
 
 const (
-	UserRegistrationDestination string = "auth_user_registration"
+	UserRegistrationDestination string = "auth.user.registration"
 )
 
 type UserRegistrationMessage struct {

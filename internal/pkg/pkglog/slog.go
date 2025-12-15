@@ -9,6 +9,10 @@ import (
 	"strings"
 )
 
+// InitLogging configures the default slog logger for the application.
+//
+// The logger writes JSON to stdout and normalizes a few common fields to make
+// logs easier to query (for example, "ts" and "severity").
 func InitLogging() {
 	jsonHandler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level:     slog.LevelInfo,

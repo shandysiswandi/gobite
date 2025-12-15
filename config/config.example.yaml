@@ -39,6 +39,10 @@ mail:
 # Messaging Configuration
 # -----------------------------------------------------------------------------
 messaging:
+  # Messaging driver/broker to use: nsq | kafka | nats | pubsub
+  # Defaults to "nsq" when omitted.
+  driver: nsq
+
   nsq:
     # Address of the NSQ daemon (nsqd) used by producers to publish messages.
     # Default NSQ TCP port is 4150.
@@ -46,10 +50,12 @@ messaging:
 
     # List of nsqd addresses consumers can connect to directly.
     # Use this when NOT using nsqlookupd (e.g. local development).
+    # Comma-separated broker list (used by pkgconfig.GetArray).
     consumer_nsqd_addrs: "localhost:4150"
 
     # List of nsqlookupd addresses used for service discovery.
     # Recommended for production deployments with multiple nsqd nodes.
+    # Comma-separated broker list (used by pkgconfig.GetArray).
     consumer_lookupd_addrs: "localhost:4161"
 
     producer_config:
@@ -73,6 +79,141 @@ messaging:
 
       # Interval at which the consumer polls nsqlookupd for new producers. In seconds
       lookupd_poll_interval: 60
+
+      # Network dial/read/write timeouts. In seconds
+      dial_timeout: 1
+      read_timeout: 60
+      write_timeout: 1
+
+      # Maximum number of times this consumer will attempt to process a message before giving up.
+      max_attempts: 5
+
+      # Server-side message timeout (0 means let nsqd decide). In seconds
+      msg_timeout: 0
+
+      # Requeue delays used for backoff. In seconds
+      default_requeue_delay: 90
+      max_requeue_delay: 900
+
+  kafka:
+    # Comma-separated broker list (used by pkgconfig.GetArray).
+    brokers: "localhost:9092"
+
+    # Timeout for establishing TCP connections to brokers. In seconds
+    dial_timeout: 10
+
+    writer_config:
+      # Limit on how many attempts will be made to deliver a message.
+      max_attempts: 10
+
+      # Target batch size in messages; 0 uses library defaults.
+      batch_size: 100
+
+      # Maximum request size in bytes; 0 uses library defaults.
+      batch_bytes: 1048576
+
+      # Flush interval for incomplete batches. In seconds
+      batch_timeout: 1
+
+      # Required acks (-1 all replicas, 1 leader only, 0 no response).
+      required_acks: -1
+
+      # If true, WriteMessages never blocks and errors are ignored.
+      async: false
+
+      # Read/write timeouts for broker operations. In seconds
+      read_timeout: 10
+      write_timeout: 10
+
+    reader_config:
+      # Internal queue capacity; 0 uses library defaults.
+      queue_capacity: 100
+
+      # Fetch min/max bytes; 0 uses library defaults.
+      min_bytes: 1
+      max_bytes: 10000000
+
+      # Max wait time for fetch. In seconds
+      max_wait: 10
+
+      # Read batch timeout. In seconds
+      read_batch_timeout: 10
+
+      # Limit of how many attempts to connect will be made before returning an error.
+      max_attempts: 3
+
+      # Poll and rebalance when partitions change (consumer groups). Optional.
+      watch_partition_changes: false
+      partition_watch_interval: 5
+
+      # Consumer group timeouts/backoff. In seconds (optional).
+      session_timeout: 30
+      rebalance_timeout: 30
+      heartbeat_interval: 3
+      join_group_backoff: 5
+
+      # Retention time for committed offsets. In seconds (optional).
+      retention_time: -1
+
+      # Start offset when no committed offset exists (use kafka-go constants: -2 first, -1 last).
+      start_offset: -2
+
+      # Read backoff min/max. In seconds (optional).
+      read_backoff_min: 0
+      read_backoff_max: 0
+
+  nats:
+    url: "nats://localhost:4222"
+
+    # Optional client name.
+    name: "gobite"
+
+    # Optional auth (prefer embedding in URL for production secret management).
+    user: ""
+    password: ""
+    token: ""
+
+    # Connection timeout. In seconds
+    timeout: 10
+
+    # Reconnect behavior (-1 = infinite, 0 = no reconnect). If omitted, NATS defaults apply.
+    max_reconnects: 60
+    reconnect_wait: 2
+
+    # Optional reconnect jitter. In seconds
+    reconnect_jitter: 0
+    reconnect_jitter_tls: 0
+
+    # Ping/health settings. In seconds
+    ping_interval: 30
+    max_pings_outstanding: 2
+
+    # Other optional settings.
+    no_echo: false
+    retry_on_failed_connect: true
+    inbox_prefix: ""
+
+  pubsub:
+    project_id: "my-gcp-project"
+
+    # Optional: use Pub/Sub emulator.
+    # If set, it will be exported as PUBSUB_EMULATOR_HOST.
+    emulator_host: ""
+
+    # Optional: override API endpoint (rarely needed).
+    endpoint: ""
+
+    # Optional: custom user-agent.
+    user_agent: ""
+
+    # Optional auth settings:
+    # - For emulators you can set without_auth: true
+    # - For GCP, prefer Application Default Credentials; otherwise set one of:
+    #   - credentials_file: "/path/to/service-account.json"
+    #   - credentials_json: "<base64 of service-account json>" (used by pkgconfig.GetBinary)
+    without_auth: false
+    credentials_file: ""
+    credentials_json: ""
 
 # -----------------------------------------------------------------------------
 # JWT Configuration
@@ -120,5 +261,5 @@ modules:
     # Expiration time for password reset in minutes (e.g., 15).
     password_reset_ttl: 15
 
-  some:
+  notification:
     enabled: true
