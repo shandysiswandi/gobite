@@ -6,11 +6,11 @@ import (
 	"log/slog"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgsql"
 )
 
-func (s *SQL) UserRegistration(ctx context.Context, user domain.User, hash string) error {
+func (s *SQL) UserRegistration(ctx context.Context, user entity.User, hash string) error {
 	tx, err := s.conn.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return err
@@ -28,7 +28,7 @@ func (s *SQL) UserRegistration(ctx context.Context, user domain.User, hash strin
 		Email:     user.Email,
 		FullName:  user.FullName,
 		AvatarUrl: user.AvatarURL,
-		Status:    user.Status.Value(),
+		Status:    user.Status,
 	}); err != nil {
 		return err
 	}

@@ -14,10 +14,11 @@ var (
 	// ErrTokenExpired is returned when the JWT token has expired.
 	ErrTokenExpired = errors.New("JWT token has expired")
 
-	// ErrTokenExpired is returned when the JWT token has expired.
+	// ErrInvalidToken is returned when the token is malformed or fails validation.
 	ErrInvalidToken = errors.New("invalid token")
 )
 
+// JWT defines the minimal operations needed by the app: generate and verify a token.
 type JWT[T any] interface {
 	Generate(subject string, payload T) (token string, jti string, err error)
 	Verify(token string) (Claims[T], error)

@@ -6,6 +6,8 @@ package pkgsql
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
+	auth_entity "github.com/shandysiswandi/gobite/internal/auth/entity"
+	notif_entity "github.com/shandysiswandi/gobite/internal/notification/entity"
 )
 
 type MfaBackupCode struct {
@@ -25,6 +27,67 @@ type MfaFactor struct {
 	IsVerified   bool
 	CreatedAt    pgtype.Timestamptz
 	UpdatedAt    pgtype.Timestamptz
+}
+
+type Notification struct {
+	ID         int64
+	UserID     int64
+	CategoryID int64
+	TriggerKey string
+	Data       notif_entity.JSONMap
+	Metadata   notif_entity.JSONMap
+	ReadAt     pgtype.Timestamptz
+	DeletedAt  pgtype.Timestamptz
+	CreatedAt  pgtype.Timestamptz
+}
+
+type NotificationCategory struct {
+	ID          int64
+	Name        string
+	Description string
+	IsMandatory bool
+	CreatedAt   pgtype.Timestamptz
+	UpdatedAt   pgtype.Timestamptz
+}
+
+type NotificationDeliveryLog struct {
+	ID               int64
+	NotificationID   int64
+	Channel          notif_entity.Channel
+	Status           notif_entity.DeliveryStatus
+	AttemptCount     int32
+	NextRetryAt      pgtype.Timestamptz
+	ProviderResponse notif_entity.JSONMap
+	CreatedAt        pgtype.Timestamptz
+	UpdatedAt        pgtype.Timestamptz
+}
+
+type NotificationTemplate struct {
+	ID         int64
+	TriggerKey string
+	CategoryID int64
+	Channel    notif_entity.Channel
+	Subject    string
+	Body       string
+	CreatedAt  pgtype.Timestamptz
+	UpdatedAt  pgtype.Timestamptz
+}
+
+type NotificationUserDevice struct {
+	ID           int64
+	UserID       int64
+	DeviceToken  string
+	Platform     string
+	LastActiveAt pgtype.Timestamptz
+	CreatedAt    pgtype.Timestamptz
+}
+
+type NotificationUserSetting struct {
+	UserID     int64
+	CategoryID int64
+	Channel    notif_entity.Channel
+	IsEnabled  bool
+	UpdatedAt  pgtype.Timestamptz
 }
 
 type Permission struct {
@@ -50,7 +113,7 @@ type User struct {
 	Email     string
 	FullName  string
 	AvatarUrl string
-	Status    int16
+	Status    auth_entity.UserStatus
 	DeletedAt pgtype.Timestamptz
 	CreatedAt pgtype.Timestamptz
 	UpdatedAt pgtype.Timestamptz

@@ -4,12 +4,15 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
 )
 
-func (s *Usecase) Logout(ctx context.Context, in domain.LogoutInput) error {
+type LogoutInput struct {
+	RefreshToken string `validate:"required"`
+}
+
+func (s *Usecase) Logout(ctx context.Context, in LogoutInput) error {
 	clm := pkgjwt.GetAuth[pkgjwt.AccessTokenPayload](ctx)
 
 	if err := s.validator.Validate(in); err != nil {

@@ -9,14 +9,16 @@ import (
 )
 
 type pubSubMessage struct {
+	topic        string
 	subscription string
 	msg          *pubsub.Message
 
 	responded atomic.Bool
 }
 
-func newPubSubMessage(subscription string, msg *pubsub.Message) *pubSubMessage {
+func newPubSubMessage(topic, subscription string, msg *pubsub.Message) *pubSubMessage {
 	return &pubSubMessage{
+		topic:        topic,
 		subscription: subscription,
 		msg:          msg,
 	}
@@ -35,7 +37,7 @@ func (m *pubSubMessage) Attributes() map[string]string { return m.msg.Attributes
 
 func (m *pubSubMessage) ID() string { return m.msg.ID }
 
-func (m *pubSubMessage) Topic() string   { return "" }
+func (m *pubSubMessage) Topic() string   { return m.topic }
 func (m *pubSubMessage) Subject() string { return "" }
 
 func (m *pubSubMessage) Timestamp() time.Time { return m.msg.PublishTime }
@@ -71,6 +73,7 @@ func (m *pubSubMessage) Extend(ctx context.Context, _ time.Duration) error {
 
 func (m *pubSubMessage) Metadata() map[string]any {
 	meta := map[string]any{
+		"topic":        m.topic,
 		"subscription": m.subscription,
 		"ordering_key": m.msg.OrderingKey,
 	}

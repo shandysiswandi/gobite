@@ -5,11 +5,23 @@ import (
 	"log/slog"
 	"strconv"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
-func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.LoginOutput, error) {
+type LoginInput struct {
+	Email    string `validate:"required,lowercase,email"`
+	Password string `validate:"required"`
+}
+
+type LoginOutput struct {
+	MfaRequired  bool
+	PreAuthToken string
+	//
+	AccessToken  string
+	RefreshToken string
+}
+
+func (s *Usecase) Login(ctx context.Context, in LoginInput) (*LoginOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
 		return nil, pkgerror.NewInvalidInput(err)
 	}
@@ -44,7 +56,7 @@ func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.Logi
 			return nil, pkgerror.NewServer(err)
 		}
 
-		return &domain.LoginOutput{
+		return &LoginOutput{
 			MfaRequired:  true,
 			PreAuthToken: tempToken,
 		}, nil
@@ -60,7 +72,7 @@ func (s *Usecase) Login(ctx context.Context, in domain.LoginInput) (*domain.Logi
 		return nil, pkgerror.NewServer(err)
 	}
 
-	return &domain.LoginOutput{
+	return &LoginOutput{
 		AccessToken:  acToken,
 		RefreshToken: refToken,
 	}, nil

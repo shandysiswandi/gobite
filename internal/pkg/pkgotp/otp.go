@@ -7,6 +7,7 @@ import (
 	"github.com/pquerna/otp/totp"
 )
 
+// TOTP implements OTP using the Time-based One-Time Password algorithm.
 type TOTP struct {
 	issuer string
 	period uint
@@ -21,6 +22,10 @@ type OTP interface {
 	GenerateCode(secret string, at time.Time) (string, error)
 }
 
+// NewTOTP constructs a TOTP instance with sensible defaults.
+//
+// If digits is not 6 or 8, it falls back to 6 digits. If period is 0, it uses
+// the common 30-second period.
 func NewTOTP(issuer string, period, skew uint, digits otp.Digits) *TOTP {
 	if digits != otp.DigitsSix && digits != otp.DigitsEight {
 		digits = otp.DigitsSix

@@ -12,12 +12,17 @@ import (
 )
 
 var (
-	ErrKafkaTopicRequired   = errors.New("pkgmessage: kafka topic is required")
+	// ErrKafkaTopicRequired is returned when the topic is empty.
+	ErrKafkaTopicRequired = errors.New("pkgmessage: kafka topic is required")
+	// ErrKafkaHandlerRequired is returned when Consume is called with a nil handler.
 	ErrKafkaHandlerRequired = errors.New("pkgmessage: kafka handler is required")
+	// ErrKafkaBrokersRequired is returned when no Kafka brokers are configured.
 	ErrKafkaBrokersRequired = errors.New("pkgmessage: kafka brokers are required")
-	ErrKafkaGroupRequired   = errors.New("pkgmessage: kafka consumer group is required")
+	// ErrKafkaGroupRequired is returned when a consumer group is required but not provided.
+	ErrKafkaGroupRequired = errors.New("pkgmessage: kafka consumer group is required")
 )
 
+// KafkaConfig configures the Kafka implementation.
 type KafkaConfig struct {
 	Brokers []string
 
@@ -27,6 +32,7 @@ type KafkaConfig struct {
 	ReaderConfig *kafka.ReaderConfig
 }
 
+// Kafka is a pkgmessaging implementation backed by kafka-go.
 type Kafka struct {
 	brokers []string
 	dialer  *kafka.Dialer
@@ -40,6 +46,7 @@ type Kafka struct {
 	closed  bool
 }
 
+// NewKafka constructs a Kafka messaging client.
 func NewKafka(cfg KafkaConfig) (*Kafka, error) {
 	if len(cfg.Brokers) == 0 {
 		return nil, ErrKafkaBrokersRequired

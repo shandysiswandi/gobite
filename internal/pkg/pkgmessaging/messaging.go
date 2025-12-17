@@ -7,6 +7,9 @@ import (
 	"time"
 )
 
+// ErrUnsupported is returned when a feature is not supported by the selected broker.
+//
+// For example, not all brokers support delayed delivery.
 var ErrUnsupported = errors.New("pkgmessage: unsupported operation")
 
 // Messaging is a broker-agnostic client that can publish and consume messages.

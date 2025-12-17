@@ -13,13 +13,19 @@ import (
 )
 
 var (
-	ErrPubSubProjectIDRequired    = errors.New("pkgmessage: pubsub project id is required")
-	ErrPubSubClientRequired       = errors.New("pkgmessage: pubsub client is required")
-	ErrPubSubTopicRequired        = errors.New("pkgmessage: pubsub topic is required")
+	// ErrPubSubProjectIDRequired is returned when a ProjectID is required but missing.
+	ErrPubSubProjectIDRequired = errors.New("pkgmessage: pubsub project id is required")
+	// ErrPubSubClientRequired is returned when the Pub/Sub client is nil or closed.
+	ErrPubSubClientRequired = errors.New("pkgmessage: pubsub client is required")
+	// ErrPubSubTopicRequired is returned when the publish topic is empty.
+	ErrPubSubTopicRequired = errors.New("pkgmessage: pubsub topic is required")
+	// ErrPubSubSubscriptionRequired is returned when the subscription name is empty.
 	ErrPubSubSubscriptionRequired = errors.New("pkgmessage: pubsub subscription is required")
-	ErrPubSubHandlerRequired      = errors.New("pkgmessage: pubsub handler is required")
+	// ErrPubSubHandlerRequired is returned when Consume is called with a nil handler.
+	ErrPubSubHandlerRequired = errors.New("pkgmessage: pubsub handler is required")
 )
 
+// PubSubConfig configures the Google Pub/Sub implementation.
 type PubSubConfig struct {
 	ProjectID string
 
@@ -27,6 +33,7 @@ type PubSubConfig struct {
 	ClientOptions []option.ClientOption
 }
 
+// PubSub is a pkgmessaging implementation backed by Google Pub/Sub.
 type PubSub struct {
 	client *pubsub.Client
 
@@ -36,6 +43,7 @@ type PubSub struct {
 	publishers map[string]*pubsub.Publisher
 }
 
+// NewPubSub constructs a PubSub messaging client.
 func NewPubSub(ctx context.Context, cfg PubSubConfig) (*PubSub, error) {
 	if cfg.Client != nil {
 		return &PubSub{client: cfg.Client, publishers: map[string]*pubsub.Publisher{}}, nil
@@ -122,11 +130,18 @@ func (p *PubSub) Consume(ctx context.Context, source string, handler Handler, op
 	}
 
 	co := newConsumeOptions(opts...)
-	sub := p.client.Subscriber(source)
+	topic := ""
+	subscription := source
+	if subName, ok := subscriptionFromConsumeOptions(co); ok {
+		topic = source
+		subscription = subName
+	}
+
+	sub := p.client.Subscriber(subscription)
 	applyPubSubReceiveSettings(sub, co)
 
 	autoAck := autoAckFromConsumeOptions(co)
-	return sub.Receive(ctx, makePubSubHandler(source, handler, autoAck))
+	return sub.Receive(ctx, makePubSubHandler(topic, subscription, handler, autoAck))
 }
 
 func (p *PubSub) getPublisher(topicNameOrID string) *pubsub.Publisher {
@@ -172,9 +187,21 @@ func autoAckFromConsumeOptions(opts consumeOptions) bool {
 	return autoAck
 }
 
-func makePubSubHandler(subscription string, handler Handler, autoAck bool) func(context.Context, *pubsub.Message) {
+func subscriptionFromConsumeOptions(opts consumeOptions) (string, bool) {
+	if opts.subscription != "" {
+		return opts.subscription, true
+	}
+	if opts.params != nil {
+		if v, ok := opts.params["subscription"]; ok && v != "" {
+			return v, true
+		}
+	}
+	return "", false
+}
+
+func makePubSubHandler(topic, subscription string, handler Handler, autoAck bool) func(context.Context, *pubsub.Message) {
 	return func(ctx context.Context, m *pubsub.Message) {
-		wrapped := newPubSubMessage(subscription, m)
+		wrapped := newPubSubMessage(topic, subscription, m)
 		herr := handler(ctx, wrapped)
 
 		if wrapped.hasResponded() || !autoAck {
@@ -200,8 +227,5 @@ func applyPubSubReceiveSettings(sub *pubsub.Subscriber, opts consumeOptions) {
 	}
 	if opts.maxInFlight > 0 {
 		sub.ReceiveSettings.MaxOutstandingMessages = opts.maxInFlight
-	}
-	if opts.ackDeadline > 0 {
-		sub.ReceiveSettings.MaxDurationPerAckExtension = opts.ackDeadline
 	}
 }

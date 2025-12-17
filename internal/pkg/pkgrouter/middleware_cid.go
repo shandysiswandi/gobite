@@ -7,13 +7,16 @@ import (
 	"github.com/shandysiswandi/gobite/internal/pkg/pkglog"
 )
 
+// Generator generates a unique string (used for correlation/request IDs).
 type Generator interface {
 	Generate() string
 }
 
 const (
+	// HeaderCorrelationID is the canonical header used to track requests end-to-end.
 	HeaderCorrelationID = "X-Correlation-ID"
-	HeaderRequestID     = "X-Request-ID"
+	// HeaderRequestID is an accepted alternative header name used by some proxies.
+	HeaderRequestID = "X-Request-ID"
 )
 
 func normalizeCID(v string) string {

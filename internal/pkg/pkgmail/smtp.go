@@ -9,11 +9,15 @@ import (
 )
 
 var (
+	// ErrSMTPHostPortRequired is returned when Host/Port are missing.
 	ErrSMTPHostPortRequired = errors.New("smtp host and port are required")
-	ErrSMTPNoRecipients     = errors.New("no recipients provided")
-	ErrSMTPNoSender         = errors.New("no sender provided")
+	// ErrSMTPNoRecipients is returned when To/Cc/Bcc are all empty.
+	ErrSMTPNoRecipients = errors.New("no recipients provided")
+	// ErrSMTPNoSender is returned when both Message.From and the configured default From are empty.
+	ErrSMTPNoSender = errors.New("no sender provided")
 )
 
+// SMTP is a Mail implementation backed by net/smtp.
 type SMTP struct {
 	addr        string
 	host        string
@@ -21,6 +25,7 @@ type SMTP struct {
 	auth        smtp.Auth
 }
 
+// SMTPConfig configures the SMTP implementation.
 type SMTPConfig struct {
 	Host     string // e.g., "localhost"
 	Port     int    // e.g., 1025 for MailHog
@@ -29,6 +34,7 @@ type SMTPConfig struct {
 	From     string // default From if Message.From is empty
 }
 
+// NewSMTP constructs an SMTP mail sender.
 func NewSMTP(cfg SMTPConfig) (*SMTP, error) {
 	if cfg.Host == "" || cfg.Port == 0 {
 		return nil, ErrSMTPHostPortRequired
@@ -47,6 +53,7 @@ func NewSMTP(cfg SMTPConfig) (*SMTP, error) {
 	}, nil
 }
 
+// Send delivers a message over SMTP.
 func (s *SMTP) Send(ctx context.Context, msg Message) error {
 	if err := ctx.Err(); err != nil {
 		return err
@@ -89,6 +96,7 @@ func (s *SMTP) Send(ctx context.Context, msg Message) error {
 	return smtp.SendMail(s.addr, s.auth, from, recipients, []byte(raw))
 }
 
+// Close implements io.Closer for interface compatibility.
 func (s *SMTP) Close() error {
 	return nil
 }

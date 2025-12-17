@@ -12,17 +12,22 @@ import (
 )
 
 var (
+	// ErrNATSSubjectRequired is returned when the subject is empty.
 	ErrNATSSubjectRequired = errors.New("pkgmessage: nats subject is required")
-	ErrNATSURLRequired     = errors.New("pkgmessage: nats url is required")
+	// ErrNATSURLRequired is returned when the NATS server URL is missing.
+	ErrNATSURLRequired = errors.New("pkgmessage: nats url is required")
+	// ErrNATSHandlerRequired is returned when Consume is called with a nil handler.
 	ErrNATSHandlerRequired = errors.New("pkgmessage: nats handler is required")
 )
 
+// NATSConfig configures the NATS implementation.
 type NATSConfig struct {
 	URL string
 
 	Options []nats.Option
 }
 
+// NATS is a pkgmessaging implementation backed by NATS.
 type NATS struct {
 	conn *nats.Conn
 
@@ -31,6 +36,7 @@ type NATS struct {
 	closed bool
 }
 
+// NewNATS constructs a NATS messaging client.
 func NewNATS(cfg NATSConfig) (*NATS, error) {
 	if cfg.URL == "" {
 		return nil, ErrNATSURLRequired

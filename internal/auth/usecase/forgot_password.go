@@ -6,22 +6,30 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
 )
 
-func (s *Usecase) ForgotPassword(ctx context.Context, in domain.ForgotPasswordInput) (*domain.ForgotPasswordOutput, error) {
+type ForgotPasswordInput struct {
+	Email string `validate:"required,lowercase,email"`
+}
+
+type ForgotPasswordOutput struct {
+	Success bool
+}
+
+func (s *Usecase) ForgotPassword(ctx context.Context, in ForgotPasswordInput) (*ForgotPasswordOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
 		return nil, pkgerror.NewInvalidInput(err)
 	}
 
 	user, err := s.repoDB.UserGetByEmail(ctx, in.Email)
 	if errors.Is(err, pkgerror.ErrNotFound) ||
-		user.Status == domain.UserStatusBanned ||
-		user.Status == domain.UserStatusUnverified {
+		user.Status == entity.UserStatusBanned ||
+		user.Status == entity.UserStatusUnverified {
 
 		slog.WarnContext(ctx, "password reset requested for unavailable user", "email", in.Email, "error", err)
-		return &domain.ForgotPasswordOutput{Success: true}, nil
+		return &ForgotPasswordOutput{Success: true}, nil
 	}
 	if err != nil {
 		slog.WarnContext(ctx, "failed to repo get user by email")
@@ -37,5 +45,5 @@ func (s *Usecase) ForgotPassword(ctx context.Context, in domain.ForgotPasswordIn
 		return nil, pkgerror.NewServer(err)
 	}
 
-	return &domain.ForgotPasswordOutput{Success: true}, nil
+	return &ForgotPasswordOutput{Success: true}, nil
 }

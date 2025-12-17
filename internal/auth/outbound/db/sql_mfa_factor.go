@@ -3,12 +3,12 @@ package db
 import (
 	"context"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgsql"
 )
 
-func mfaFactorFromSQL(u pkgsql.MfaFactor) *domain.MfaFactor {
-	item := &domain.MfaFactor{
+func mfaFactorFromSQL(u pkgsql.MfaFactor) *entity.MfaFactor {
+	item := &entity.MfaFactor{
 		ID:           u.ID,
 		UserID:       u.UserID,
 		Type:         u.Type,
@@ -28,7 +28,7 @@ func mfaFactorFromSQL(u pkgsql.MfaFactor) *domain.MfaFactor {
 	return item
 }
 
-func (s *SQL) MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.MfaFactor, error) {
+func (s *SQL) MfaFactorGetByUserID(ctx context.Context, userID int64) ([]entity.MfaFactor, error) {
 	items, err := s.query.MfaFactorGetByUserID(ctx, pkgsql.MfaFactorGetByUserIDParams{
 		UserID:     userID,
 		IsVerified: true,
@@ -37,7 +37,7 @@ func (s *SQL) MfaFactorGetByUserID(ctx context.Context, userID int64) ([]domain.
 		return nil, err
 	}
 
-	result := make([]domain.MfaFactor, 0)
+	result := make([]entity.MfaFactor, 0)
 	for _, item := range items {
 		result = append(result, *mfaFactorFromSQL(item))
 	}

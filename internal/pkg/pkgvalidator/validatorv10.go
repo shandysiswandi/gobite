@@ -21,11 +21,15 @@ var (
 
 var ErrTranslatorNotFound = errors.New("translator not found")
 
+// V10Validator implements Validator using go-playground/validator v10.
 type V10Validator struct {
 	validate   *validator.Validate
 	translator ut.Translator
 }
 
+// V10ValidationError is a field-to-message map returned when validation fails.
+//
+// Keys are field names in snake_case to match typical JSON conventions.
 type V10ValidationError map[string]string
 
 func (vs V10ValidationError) Error() string {
@@ -36,6 +40,7 @@ func (vs V10ValidationError) Values() map[string]string {
 	return vs
 }
 
+// NewV10Validator constructs a V10Validator with English translations and custom rules.
 func NewV10Validator() (*V10Validator, error) {
 	validate := validator.New(validator.WithRequiredStructEnabled())
 
@@ -58,6 +63,7 @@ func NewV10Validator() (*V10Validator, error) {
 	}, nil
 }
 
+// Validate validates a struct and returns a V10ValidationError on failure.
 func (v *V10Validator) Validate(data any) error {
 	if err := v.validate.Struct(data); err != nil {
 		var validateErrs validator.ValidationErrors

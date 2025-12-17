@@ -1,4 +1,3 @@
-// Package pkgvalidator provides interfaces and implementations for data validation.
 package pkgvalidator
 
 // Validator is an interface that defines a single method for validating data.

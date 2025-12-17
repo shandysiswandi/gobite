@@ -3,24 +3,24 @@ package inbound
 import (
 	"context"
 
-	"github.com/shandysiswandi/gobite/internal/auth/domain"
+	"github.com/shandysiswandi/gobite/internal/auth/usecase"
 	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
 )
 
-type usecase interface {
-	Login(ctx context.Context, in domain.LoginInput) (*domain.LoginOutput, error)
-	Login2FA(ctx context.Context, in domain.Login2FAInput) (*domain.Login2FAOutput, error)
-	Register(ctx context.Context, in domain.RegisterInput) (*domain.RegisterOutput, error)
-	EmailVerify(ctx context.Context, in domain.EmailVerifyInput) error
-	ForgotPassword(ctx context.Context, in domain.ForgotPasswordInput) (*domain.ForgotPasswordOutput, error)
-	ResetPassword(ctx context.Context, in domain.ResetPasswordInput) error
-	Logout(ctx context.Context, in domain.LogoutInput) error
-	ChangePassword(ctx context.Context, in domain.ChangePasswordInput) error
-	RefreshToken(ctx context.Context, in domain.RefreshTokenInput) (*domain.RefreshTokenOutput, error)
-	Profile(ctx context.Context, in domain.ProfileInput) (*domain.ProfileOutput, error)
+type uc interface {
+	Login(ctx context.Context, in usecase.LoginInput) (*usecase.LoginOutput, error)
+	Login2FA(ctx context.Context, in usecase.Login2FAInput) (*usecase.Login2FAOutput, error)
+	Register(ctx context.Context, in usecase.RegisterInput) (*usecase.RegisterOutput, error)
+	EmailVerify(ctx context.Context, in usecase.EmailVerifyInput) error
+	ForgotPassword(ctx context.Context, in usecase.ForgotPasswordInput) (*usecase.ForgotPasswordOutput, error)
+	ResetPassword(ctx context.Context, in usecase.ResetPasswordInput) error
+	Logout(ctx context.Context, in usecase.LogoutInput) error
+	ChangePassword(ctx context.Context, in usecase.ChangePasswordInput) error
+	RefreshToken(ctx context.Context, in usecase.RefreshTokenInput) (*usecase.RefreshTokenOutput, error)
+	Profile(ctx context.Context, in usecase.ProfileInput) (*usecase.ProfileOutput, error)
 }
 
-func RegisterHTTPEndpoint(r *pkgrouter.Router, uc usecase) {
+func RegisterHTTPEndpoint(r *pkgrouter.Router, uc uc) {
 	end := &HTTPEndpoint{uc: uc}
 
 	// Auth & User Management

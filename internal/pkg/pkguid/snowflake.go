@@ -7,6 +7,7 @@ import (
 	"github.com/bwmarrin/snowflake"
 )
 
+// Snowflake generates numeric IDs using the Snowflake algorithm.
 type Snowflake struct {
 	node *snowflake.Node
 }
@@ -21,6 +22,7 @@ func generateRandomNodeID() (int64, error) {
 	return nodeID & (1<<10 - 1), nil // Limiting to 10 bits for node ID
 }
 
+// NewSnowflake constructs a Snowflake generator with a random node ID.
 func NewSnowflake() (*Snowflake, error) {
 	nodeID, err := generateRandomNodeID()
 	if err != nil {
@@ -37,6 +39,7 @@ func NewSnowflake() (*Snowflake, error) {
 	return &Snowflake{node: node}, nil
 }
 
+// Generate returns a new unique numeric ID.
 func (s *Snowflake) Generate() int64 {
 	return s.node.Generate().Int64()
 }

@@ -1,4 +1,3 @@
-// Package pkgmail defines contracts for sending email messages.
 package pkgmail
 
 import (
@@ -7,6 +6,9 @@ import (
 )
 
 // Message represents an email payload.
+//
+// Fields are intentionally provider-agnostic so they can be sent using SMTP or
+// other delivery mechanisms.
 type Message struct {
 	From     string   // optional explicit sender; fallback depends on implementation
 	To       []string // required recipients
@@ -17,7 +19,7 @@ type Message struct {
 	HTMLBody string // optional HTML alternative
 }
 
-// Mail abstracts an email provider.
+// Mail abstracts an email provider (SMTP, third-party API, etc).
 type Mail interface {
 	io.Closer
 	// Send dispatches the given message using the underlying provider.

@@ -1,6 +1,3 @@
-// Package pkgerror defines shared sentinel errors used across the application.
-// These errors are intended to be compared with errors.Is and mapped by
-// handlers to consistent HTTP or RPC responses.
 package pkgerror
 
 import (
@@ -14,6 +11,7 @@ var (
 	ErrNotFound = errors.New("resource not found")
 )
 
+// Type classifies errors into high-level buckets used by the application.
 type Type int
 
 const (
@@ -35,6 +33,7 @@ func (t Type) String() string {
 	}
 }
 
+// Code is a stable identifier used for mapping errors to HTTP status codes.
 type Code int
 
 const (
@@ -69,6 +68,10 @@ func (c Code) String() string {
 	}
 }
 
+// Error is a structured error used across the application.
+//
+// It can wrap an underlying error while also carrying a user-facing message,
+// a high-level type, and a stable error code.
 type Error struct {
 	err     error
 	msg     string
@@ -76,6 +79,7 @@ type Error struct {
 	code    Code
 }
 
+// Error implements the error interface.
 func (e *Error) Error() string {
 	if e.err != nil {
 		return e.err.Error()
@@ -100,6 +104,7 @@ func (e *Error) Error() string {
 	return "Unknown error"
 }
 
+// String returns a verbose representation of the error for debugging/logging.
 func (e *Error) String() string {
 	return fmt.Sprintf(
 		"Error Type: %s, Code: %s, Message: %s, Underlying Error: %v",
@@ -110,22 +115,27 @@ func (e *Error) String() string {
 	)
 }
 
+// Msg returns the user-facing error message, if set.
 func (e *Error) Msg() string {
 	return e.msg
 }
 
+// Type returns the high-level error type.
 func (e *Error) Type() Type {
 	return e.errType
 }
 
+// Code returns the stable error code.
 func (e *Error) Code() Code {
 	return e.code
 }
 
+// Unwrap returns the underlying error.
 func (e *Error) Unwrap() error {
 	return e.err
 }
 
+// StatusCode maps the error code to an HTTP status code.
 func (e *Error) StatusCode() int {
 	switch e.code {
 	case CodeInvalidFormat:
@@ -168,7 +178,7 @@ func NewInvalidInput(err error) error {
 	return new(err, "validation error", TypeValidation, CodeInvalidInput)
 }
 
-// NewInvalidFormat creates a validation error for invalid format with a message and underlying error.
+// NewInvalidFormat creates a validation error for an invalid request body format.
 func NewInvalidFormat() error {
 	return new(nil, "invalid request body", TypeValidation, CodeInvalidFormat)
 }

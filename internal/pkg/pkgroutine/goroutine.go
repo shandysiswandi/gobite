@@ -8,8 +8,12 @@ import (
 	"sync"
 )
 
+// DefaultMaxGoroutine is used when NewManager receives a non-positive limit.
 const DefaultMaxGoroutine int = 10
 
+// Manager runs functions in goroutines with a configurable concurrency limit.
+//
+// It collects errors returned by tasks and can be waited on using Wait.
 type Manager struct {
 	mu   sync.Mutex
 	errs []error
@@ -17,6 +21,7 @@ type Manager struct {
 	sema chan struct{}
 }
 
+// NewManager creates a new Manager with the provided maximum concurrency.
 func NewManager(maxGoroutine int) *Manager {
 	if maxGoroutine < 1 {
 		maxGoroutine = DefaultMaxGoroutine
@@ -28,6 +33,10 @@ func NewManager(maxGoroutine int) *Manager {
 	}
 }
 
+// Go schedules a function to run in a goroutine if capacity is available.
+//
+// If the manager is already at its concurrency limit, the function is not run
+// and a warning is logged.
 func (g *Manager) Go(pCtx context.Context, f func(ctx context.Context) error) {
 	select {
 	case g.sema <- struct{}{}: // Acquire a semaphore slot
@@ -58,6 +67,7 @@ func (g *Manager) Go(pCtx context.Context, f func(ctx context.Context) error) {
 	}
 }
 
+// Wait blocks until all scheduled goroutines finish and returns any collected errors.
 func (g *Manager) Wait() error {
 	g.wg.Wait()
 
