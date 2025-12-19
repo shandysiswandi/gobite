@@ -152,6 +152,8 @@ DROP TABLE IF EXISTS notification_templates;
 DROP TRIGGER IF EXISTS trg_notification_user_settings_set_updated_at ON notification_user_settings;
 DROP TABLE IF EXISTS notification_user_settings;
 
+DROP TABLE IF EXISTS notification_user_devices;
+
 DROP TRIGGER IF EXISTS trg_notification_categories_set_updated_at ON notification_categories;
 DROP TABLE IF EXISTS notification_categories;
 -- +goose StatementEnd

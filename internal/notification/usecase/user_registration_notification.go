@@ -5,16 +5,14 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"strconv"
 	"text/template"
 	"time"
 
 	"github.com/shandysiswandi/gobite/internal/notification/entity"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/mail"
+	"github.com/shandysiswandi/gobite/internal/pkg/valueobject"
 )
-
-const emailVerifyPurpose = "email_verify"
 
 func (s *Usecase) UserRegistrationNotification(ctx context.Context, msg entity.UserRegistrationMessage) error {
 	if msg.UserID <= 0 || msg.Email == "" {
@@ -29,7 +27,7 @@ func (s *Usecase) UserRegistrationNotification(ctx context.Context, msg entity.U
 
 func (s *Usecase) createWelcomeNotification(ctx context.Context, msg entity.UserRegistrationMessage) {
 	tpl, err := s.repoDB.NotificationTemplateGetByTrigger(ctx, entity.TriggerUserWelcome, entity.ChannelInApp)
-	if errors.Is(err, pkgerror.ErrNotFound) {
+	if errors.Is(err, goerror.ErrNotFound) {
 		return
 	}
 	if err != nil {
@@ -42,8 +40,8 @@ func (s *Usecase) createWelcomeNotification(ctx context.Context, msg entity.User
 		UserID:     msg.UserID,
 		CategoryID: tpl.CategoryID,
 		TriggerKey: tpl.TriggerKey,
-		Data:       entity.JSONMap{"full_name": msg.FullName},
-		Metadata:   entity.JSONMap{},
+		Data:       valueobject.JSONMap{"full_name": msg.FullName},
+		Metadata:   valueobject.JSONMap{},
 	}
 
 	if err := s.repoDB.NotificationCreate(ctx, n); err != nil {
@@ -54,9 +52,7 @@ func (s *Usecase) createWelcomeNotification(ctx context.Context, msg entity.User
 func (s *Usecase) createAndSendEmailVerify(ctx context.Context, msg entity.UserRegistrationMessage) {
 	subjectTpl, bodyTpl, categoryID := s.getEmailVerifyTemplate(ctx)
 
-	token, _, err := s.jwtTempToken.Generate(strconv.FormatInt(msg.UserID, 10), map[string]any{
-		"purpose": emailVerifyPurpose,
-	})
+	token, err := s.jwt.Generate() // need to be clean here
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to generate email verify token", "user_id", msg.UserID, "error", err)
 		return
@@ -87,8 +83,8 @@ func (s *Usecase) createAndSendEmailVerify(ctx context.Context, msg entity.UserR
 		UserID:     msg.UserID,
 		CategoryID: categoryID,
 		TriggerKey: entity.TriggerEmailVerify,
-		Data:       entity.JSONMap{"full_name": msg.FullName, "token": token},
-		Metadata:   entity.JSONMap{"email": msg.Email},
+		Data:       valueobject.JSONMap{"full_name": msg.FullName, "token": token},
+		Metadata:   valueobject.JSONMap{"email": msg.Email},
 	}
 
 	logID, err := s.repoDB.NotificationCreateWithDeliveryLog(ctx, n, entity.DeliveryLogCreate{
@@ -101,21 +97,21 @@ func (s *Usecase) createAndSendEmailVerify(ctx context.Context, msg entity.UserR
 		return
 	}
 
-	sendErr := s.repoMail.Send(ctx, pkgmail.Message{
+	sendErr := s.repoMail.Send(ctx, mail.Message{
 		To:       []string{msg.Email},
 		Subject:  subject,
 		TextBody: body,
 	})
 
 	if sendErr == nil {
-		if err := s.repoDB.NotificationDeliveryLogUpdateStatus(ctx, logID, entity.StatusSent, entity.JSONMap{"sent": true}, nil); err != nil {
+		if err := s.repoDB.NotificationDeliveryLogUpdateStatus(ctx, logID, entity.StatusSent, valueobject.JSONMap{"sent": true}, nil); err != nil {
 			slog.ErrorContext(ctx, "failed to repo update delivery log status sent", "log_id", logID, "error", err)
 		}
 		return
 	}
 
 	nextRetry := s.clock.Now().Add(5 * time.Minute)
-	if err := s.repoDB.NotificationDeliveryLogUpdateStatus(ctx, logID, entity.StatusFailed, entity.JSONMap{"error": sendErr.Error()}, &nextRetry); err != nil {
+	if err := s.repoDB.NotificationDeliveryLogUpdateStatus(ctx, logID, entity.StatusFailed, valueobject.JSONMap{"error": sendErr.Error()}, &nextRetry); err != nil {
 		slog.ErrorContext(ctx, "failed to repo update delivery log status failed", "log_id", logID, "error", err)
 	}
 	slog.ErrorContext(ctx, "failed to send email verify", "log_id", logID, "user_id", msg.UserID, "error", sendErr)
@@ -127,7 +123,7 @@ func (s *Usecase) getEmailVerifyTemplate(ctx context.Context) (subjectTpl, bodyT
 		return tpl.Subject, tpl.Body, tpl.CategoryID
 	}
 
-	if !errors.Is(err, pkgerror.ErrNotFound) {
+	if !errors.Is(err, goerror.ErrNotFound) {
 		slog.ErrorContext(ctx, "failed to repo get email verify template", "error", err)
 	}
 

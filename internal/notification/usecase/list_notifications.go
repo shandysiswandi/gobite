@@ -4,21 +4,26 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
 )
 
 func (s *Usecase) ListNotifications(ctx context.Context, in ListNotificationsInput) (*ListNotificationsOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
-		return nil, pkgerror.NewInvalidInput(err)
+		return nil, goerror.NewInvalidInput(err)
 	}
 
-	clm := pkgjwt.GetAuth[pkgjwt.AccessTokenPayload](ctx)
+	clm := jwt.GetAuth(ctx)
+	if clm == nil {
+		return nil, goerror.NewBusiness("authentication required", goerror.CodeUnauthorized)
+	}
 
-	items, err := s.repoDB.NotificationGetUserNotificationPaginate(ctx, clm.Payload().UserID, in.Limit, in.Offset)
+	uid := clm.GetInt64(keyPayloadUserID)
+
+	items, err := s.repoDB.NotificationGetUserNotificationPaginate(ctx, uid, in.Limit, in.Offset)
 	if err != nil {
-		slog.ErrorContext(ctx, "failed to repo get user notifications paginate", "user_id", clm.Payload().UserID, "error", err)
-		return nil, pkgerror.NewServer(err)
+		slog.ErrorContext(ctx, "failed to repo get user notifications paginate", "user_id", uid, "error", err)
+		return nil, goerror.NewServer(err)
 	}
 
 	return &ListNotificationsOutput{

@@ -8,55 +8,58 @@ import (
 	"github.com/shandysiswandi/gobite/internal/auth/outbound/db"
 	"github.com/shandysiswandi/gobite/internal/auth/outbound/mq"
 	"github.com/shandysiswandi/gobite/internal/auth/usecase"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmessaging"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
+	"github.com/shandysiswandi/gobite/internal/pkg/clock"
+	"github.com/shandysiswandi/gobite/internal/pkg/config"
+	"github.com/shandysiswandi/gobite/internal/pkg/goroutine"
+	"github.com/shandysiswandi/gobite/internal/pkg/hash"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/messaging"
+	"github.com/shandysiswandi/gobite/internal/pkg/mfacrypto"
+	"github.com/shandysiswandi/gobite/internal/pkg/otp"
+	"github.com/shandysiswandi/gobite/internal/pkg/router"
+	"github.com/shandysiswandi/gobite/internal/pkg/uid"
+	"github.com/shandysiswandi/gobite/internal/pkg/validator"
 )
 
 type Dependency struct {
-	DBConn          *pgxpool.Pool
-	CacheConn       *redis.Client
-	Messaging       pkgmessaging.Messaging
-	Config          pkgconfig.Config
-	UID             pkguid.NumberID
-	UUID            pkguid.StringID
-	Hash            pkghash.Hash
-	Clock           pkgclock.Clocker
-	Totp            pkgotp.OTP
-	Goroutine       *pkgroutine.Manager
-	Validator       pkgvalidator.Validator
-	JWTTempToken    pkgjwt.JWT[map[string]any]
-	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
-	JWTRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
-	Router          *pkgrouter.Router
+	DBConn    *pgxpool.Pool
+	CacheConn *redis.Client
+	Messaging messaging.Messaging
+	Config    config.Config
+	UID       uid.NumberID
+	UUID      uid.StringID
+	OID       uid.StringID
+	Password  hash.Hash
+	Hash      hash.Hash
+	MFACrypto mfacrypto.Encryptor
+	Clock     clock.Clocker
+	Totp      otp.OTP
+	Goroutine *goroutine.Manager
+	Validator validator.Validator
+	JWT       jwt.JWT
+	Router    *router.Router
 }
 
 func New(dep Dependency) error {
-	dbAuth := db.NewSQL(dep.DBConn)
+	dbAuth := db.NewDB(dep.DBConn)
 	cacheAuth := cache.NewRedis(dep.CacheConn, dep.Config)
 	repoMsg := mq.NewMessaging(dep.Messaging)
 
 	uc := usecase.NewAuth(usecase.Dependency{
-		RepoDB:          dbAuth,
-		RepoCache:       cacheAuth,
-		RepoMessaging:   repoMsg,
-		Validator:       dep.Validator,
-		Config:          dep.Config,
-		Hash:            dep.Hash,
-		UID:             dep.UID,
-		UUID:            dep.UUID,
-		Totp:            dep.Totp,
-		Clock:           dep.Clock,
-		JWTTempToken:    dep.JWTTempToken,
-		JWTAccessToken:  dep.JWTAccessToken,
-		JWTRefreshToken: dep.JWTRefreshToken,
+		RepoDB:        dbAuth,
+		RepoCache:     cacheAuth,
+		RepoMessaging: repoMsg,
+		Validator:     dep.Validator,
+		Config:        dep.Config,
+		Password:      dep.Password,
+		Hash:          dep.Hash,
+		MFACrypto:     dep.MFACrypto,
+		UID:           dep.UID,
+		UUID:          dep.UUID,
+		OID:           dep.OID,
+		Totp:          dep.Totp,
+		Clock:         dep.Clock,
+		JWT:           dep.JWT,
 	})
 
 	inbound.RegisterHTTPEndpoint(dep.Router, uc)

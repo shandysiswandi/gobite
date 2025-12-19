@@ -2,20 +2,25 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strconv"
+	"strings"
+	"time"
 
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
 )
 
 type LoginInput struct {
-	Email    string `validate:"required,lowercase,email"`
+	Email    string `validate:"required,email"`
 	Password string `validate:"required"`
 }
 
 type LoginOutput struct {
-	MfaRequired  bool
-	PreAuthToken string
+	MfaRequired    bool
+	ChallengeToken string
 	//
 	AccessToken  string
 	RefreshToken string
@@ -23,53 +28,81 @@ type LoginOutput struct {
 
 func (s *Usecase) Login(ctx context.Context, in LoginInput) (*LoginOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
-		return nil, pkgerror.NewInvalidInput(err)
+		return nil, goerror.NewInvalidInput(err)
 	}
 
-	user, err := s.getUserByEmail(ctx, in.Email)
+	email := strings.TrimSpace(in.Email)
+	user, err := s.repoDB.GetUserLoginInfo(ctx, email)
+	if errors.Is(err, goerror.ErrNotFound) {
+		slog.WarnContext(ctx, "user account not found", "email", email)
+		return nil, goerror.NewBusiness("invalid email or password", goerror.CodeUnauthorized)
+	}
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to repo get user by email", "email", email, "error", err)
+		return nil, goerror.NewServer(err)
+	}
+
+	if err := s.ensureUserAllowedToLogin(ctx, user.ID, user.Status); err != nil {
 		return nil, err
 	}
 
-	userCred, err := s.getCredential(ctx, user.ID)
-	if err != nil {
-		return nil, err
+	if !s.password.Verify(user.Password, in.Password) {
+		slog.WarnContext(ctx, "password user account not match", "user_id", user.ID)
+		return nil, goerror.NewBusiness("invalid email or password", goerror.CodeUnauthorized)
 	}
 
-	if !s.hash.Verify(userCred.Password, in.Password) {
-		slog.WarnContext(ctx, "password user account not match")
-		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
-	}
+	if user.HasMFA {
+		cToken := s.oid.Generate()
 
-	mfaFacs, err := s.repoDB.MfaFactorGetByUserID(ctx, user.ID)
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to repo get mfa factor by user_id", "user_id", user.ID, "error", err)
-		return nil, pkgerror.NewServer(err)
-	}
-
-	// this mean user has mfa active
-	if len(mfaFacs) > 0 {
-		strID := strconv.FormatInt(user.ID, 10)
-		tempToken, _, err := s.jwtTempToken.Generate(strID, map[string]any{"some_id": mfaFacs[0].ID})
+		cTokenHash, err := s.hash.Hash(cToken)
 		if err != nil {
-			slog.ErrorContext(ctx, "failed to generate temp jwt token", "user_id", user.ID, "error", err)
-			return nil, pkgerror.NewServer(err)
+			slog.ErrorContext(ctx, "failed to hash token challange", "error", err)
+			return nil, goerror.NewServer(err)
+		}
+
+		if err := s.repoDB.CreateChallenge(ctx, entity.Challenge{
+			ID:        s.uid.Generate(),
+			UserID:    user.ID,
+			Token:     string(cTokenHash),
+			Purpose:   entity.ChallengePurposeMFALogin,
+			ExpiresAt: s.clock.Now().Add(5 * time.Minute), // can be use config later
+		}); err != nil {
+			slog.ErrorContext(ctx, "failed to repo create challange", "user_id", user.ID, "error", err)
+			return nil, goerror.NewServer(err)
 		}
 
 		return &LoginOutput{
-			MfaRequired:  true,
-			PreAuthToken: tempToken,
+			MfaRequired:    true,
+			ChallengeToken: cToken,
 		}, nil
 	}
 
-	acToken, acJTI, refToken, refJTI, err := s.issueTokens(ctx, user)
+	acToken, err := s.jwt.Generate(
+		jwt.WithID(s.uuid.Generate()),
+		jwt.WithSubject(strconv.FormatInt(user.ID, 10)),
+		jwt.WithPayloadValue(keyPayloadUserID, user.ID),
+		jwt.WithPayloadValue(keyPayloadUserEmail, user.Email),
+	)
 	if err != nil {
-		return nil, err
+		slog.ErrorContext(ctx, "failed to generate access jwt token", "user_id", user.ID, "error", err)
+		return nil, goerror.NewServer(err)
 	}
 
-	if err := s.repoCache.SaveTokensID(ctx, acJTI, refJTI); err != nil {
-		slog.ErrorContext(ctx, "failed to save jtis to redis", "ac", acJTI, "ref", refJTI, "error", err)
-		return nil, pkgerror.NewServer(err)
+	refToken := s.oid.Generate()
+	refTokenHash, err := s.hash.Hash(refToken)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to hash refresh token", "user_id", user.ID, "error", err)
+		return nil, goerror.NewServer(err)
+	}
+
+	if err := s.repoDB.CreateRefreshToken(ctx, entity.RefreshToken{
+		ID:        s.uid.Generate(),
+		UserID:    user.ID,
+		Token:     string(refTokenHash),
+		ExpiresAt: s.clock.Now().Add(time.Duration(s.cfg.GetInt("modules.auth.refresh_token_ttl")) * 24 * time.Hour),
+	}); err != nil {
+		slog.ErrorContext(ctx, "failed to repo create refresh token user", "user_id", user.ID, "error", err)
+		return nil, goerror.NewServer(err)
 	}
 
 	return &LoginOutput{

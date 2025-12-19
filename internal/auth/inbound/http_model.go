@@ -6,10 +6,10 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	MfaRequired  bool   `json:"mfa_required,omitempty"`
-	PreAuthToken string `json:"pre_auth_token,omitempty"`
-	AccessToken  string `json:"access_token,omitempty"`
-	RefreshToken string `json:"refresh_token,omitempty"`
+	MfaRequired    bool   `json:"mfa_required,omitempty"`
+	ChallengeToken string `json:"challenge_token,omitempty"`
+	AccessToken    string `json:"access_token,omitempty"`
+	RefreshToken   string `json:"refresh_token,omitempty"`
 }
 
 type RegisterRequest struct {
@@ -18,8 +18,20 @@ type RegisterRequest struct {
 	FullName string `json:"full_name"`
 }
 
-type RegisterResponse struct {
-	IsNeedVerify bool `json:"is_need_verify"`
+type RegisterResponse struct{}
+
+func (RegisterResponse) Message() string {
+	return "Registration successful. Please check your email to verify your account."
+}
+
+type RegisterResendRequest struct {
+	Email string `json:"email"`
+}
+
+type RegisterResendesponse struct{}
+
+func (RegisterResendesponse) Message() string {
+	return "If an account with that email exists, we have sent a verification link."
 }
 
 type EmailVerifyRequest struct {
@@ -30,21 +42,17 @@ type ForgotPasswordRequest struct {
 	Email string `json:"email"`
 }
 
-type ForgotPasswordResponse struct {
-	Success bool `json:"success"`
-}
-
 type ResetPasswordRequest struct {
 	Token       string `json:"token"`
 	NewPassword string `json:"new_password"`
 }
 
-type Login2FARequest struct {
-	PreAuthToken string `json:"pre_auth_token"`
-	Code         string `json:"code"`
+type LoginMFARequest struct {
+	ChallengeToken string `json:"challenge_token"`
+	Code           string `json:"code"`
 }
 
-type Login2FAResponse struct {
+type LoginMFAResponse struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
@@ -56,6 +64,26 @@ type LogoutRequest struct {
 type ChangePasswordRequest struct {
 	CurrentPassword string `json:"current_password"`
 	NewPassword     string `json:"new_password"`
+}
+
+type SetupTOTPRequest struct {
+	FriendlyName    string `json:"friendly_name"`
+	CurrentPassword string `json:"current_password"`
+}
+
+type SetupTOTPResponse struct {
+	ChallengeToken string `json:"challenge_token"`
+	Key            string `json:"key"`
+	URI            string `json:"uri"`
+}
+
+type ConfirmTOTPRequest struct {
+	ChallengeToken string `json:"challenge_token"`
+	Code           string `json:"code"`
+}
+
+type UpdateProfileRequest struct {
+	FullName string `json:"full_name"`
 }
 
 type ProfileResponse struct {

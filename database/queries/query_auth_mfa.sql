@@ -1,0 +1,13 @@
+-- -- name: MfaFactorGetByID :one
+-- SELECT * FROM auth_mfa_factors 
+-- WHERE 
+--     id = @id AND 
+--     user_id = @user_id;
+
+-- -- name: MfaFactorVerify :exec
+-- UPDATE auth_mfa_factors
+-- SET is_verified = TRUE
+-- WHERE
+--     id = @id AND
+--     user_id = @user_id AND
+--     is_verified = FALSE;

@@ -3,17 +3,17 @@ package outbound
 import (
 	"context"
 
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
+	"github.com/shandysiswandi/gobite/internal/pkg/mail"
 )
 
 type Mail struct {
-	client pkgmail.Mail
+	client mail.Mail
 }
 
-func NewMail(client pkgmail.Mail) *Mail {
+func NewMail(client mail.Mail) *Mail {
 	return &Mail{client: client}
 }
 
-func (m *Mail) Send(ctx context.Context, msg pkgmail.Message) error {
+func (m *Mail) Send(ctx context.Context, msg mail.Message) error {
 	return m.client.Send(ctx, msg)
 }

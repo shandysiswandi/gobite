@@ -36,6 +36,16 @@ mail:
   from: no-replay@gobite.com
 
 # -----------------------------------------------------------------------------
+# Storage Configuration
+# -----------------------------------------------------------------------------
+storage:
+  host: localhost
+  port: 1025
+  username: user
+  password: password
+  from: no-replay@gobite.com
+
+# -----------------------------------------------------------------------------
 # Messaging Configuration
 # -----------------------------------------------------------------------------
 messaging:
@@ -50,12 +60,12 @@ messaging:
 
     # List of nsqd addresses consumers can connect to directly.
     # Use this when NOT using nsqlookupd (e.g. local development).
-    # Comma-separated broker list (used by pkgconfig.GetArray).
+    # Comma-separated broker list (used by config.GetArray).
     consumer_nsqd_addrs: "localhost:4150"
 
     # List of nsqlookupd addresses used for service discovery.
     # Recommended for production deployments with multiple nsqd nodes.
-    # Comma-separated broker list (used by pkgconfig.GetArray).
+    # Comma-separated broker list (used by config.GetArray).
     consumer_lookupd_addrs: "localhost:4161"
 
     producer_config:
@@ -96,7 +106,7 @@ messaging:
       max_requeue_delay: 900
 
   kafka:
-    # Comma-separated broker list (used by pkgconfig.GetArray).
+    # Comma-separated broker list (used by config.GetArray).
     brokers: "localhost:9092"
 
     # Timeout for establishing TCP connections to brokers. In seconds
@@ -210,7 +220,7 @@ messaging:
     # - For emulators you can set without_auth: true
     # - For GCP, prefer Application Default Credentials; otherwise set one of:
     #   - credentials_file: "/path/to/service-account.json"
-    #   - credentials_json: "<base64 of service-account json>" (used by pkgconfig.GetBinary)
+    #   - credentials_json: "<base64 of service-account json>" (used by config.GetBinary)
     without_auth: false
     credentials_file: ""
     credentials_json: ""
@@ -219,36 +229,44 @@ messaging:
 # JWT Configuration
 # -----------------------------------------------------------------------------
 jwt:
-  temp:
-    # A 64-byte, base64-encoded secret key.
-    # Generate with: openssl rand -base64 64
-    secret: "your-super-secret-64-byte-long-session-key-for-testing"
+  # A 64-byte, base64-encoded secret key.
+  # Generate with: openssl rand -base64 64
+  secret: "your-super-secret-64-byte-long-session-key-for-testing"
 
-    # Expiration time for temp tokens in minutes (e.g., 3).
-    ttl: 3
+  issuer: "gobite"
 
-  access:
-    # A 64-byte, base64-encoded secret key.
-    # Generate with: openssl rand -base64 64
-    secret: "your-super-secret-64-byte-long-session-key-for-testing"
+  audiences: "WEB,MOBILE"
 
-    # Expiration time for access tokens in minutes (e.g., 15).
-    ttl: 15
-
-  refresh:
-    # A 64-byte, base64-encoded secret key.
-    # Generate with: openssl rand -base64 64
-    secret: "your-super-secret-64-byte-long-session-key-for-testing"
-
-    # Expiration time for refresh tokens in days (e.g., 7).
-    ttl: 7
+  # Expiration time for access tokens in minutes (e.g., 5).
+  ttl: 5
 
 # -----------------------------------------------------------------------------
 # Password Configuration
 # -----------------------------------------------------------------------------
 password:
   cost: 12
-  secret: secret
+  pepper: "secret"
+
+# -----------------------------------------------------------------------------
+# Hashing Configuration
+# -----------------------------------------------------------------------------
+hash:
+  # A 32-byte, base64-encoded secret key.
+  # Generate with: openssl rand -base64 32
+  secret: "secret"
+
+# -----------------------------------------------------------------------------
+# MFA Configuration
+# -----------------------------------------------------------------------------
+mfa:
+  # A 32-byte, base64-encoded secret key.
+  # Generate with: openssl rand -base64 32
+  secret: "your-super-secret-32-byte-long-session-key-for-testing"
+
+  totp:
+    issuer: "GOBITE"
+    period: 30
+    skew: 1
 
 # -----------------------------------------------------------------------------
 # Modules Configuration
@@ -258,8 +276,13 @@ modules:
     #
     enabled: true
 
-    # Expiration time for password reset in minutes (e.g., 15).
-    password_reset_ttl: 15
+    # Expiration time for password reset in minutes (e.g., 3).
+    password_reset_ttl: 3
+
+    # Expiration time for refresh token in days (e.g., 7).
+    refresh_token_ttl: 7
 
   notification:
     enabled: true
+
+    consumer_names: "auth.user.registration.notification"

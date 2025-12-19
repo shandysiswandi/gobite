@@ -1,88 +1,134 @@
--- ----- ----- ----- ----- -----
--- users table
--- ----- ----- ----- ----- -----
+-- ***** ***** *****
+-- SELECT DATA
+-- ***** ***** *****
 
--- name: UserGetByEmail :one
-SELECT * FROM users 
+-- name: GetAuthUserLoginInfo :one
+SELECT u.id, u.email, u.status, c.password, EXISTS (SELECT 1 FROM auth_mfa_factors m WHERE m.user_id = u.id AND m.is_verified = TRUE) AS has_mfa
+FROM auth_users AS u
+JOIN auth_user_credentials AS c ON u.id = c.user_id
 WHERE 
-    email = @email AND 
-    deleted_at IS NULL;
+    lower(u.email) = lower(@email) 
+    AND u.deleted_at IS NULL;
 
--- name: UserGetByID :one
-SELECT * FROM users 
+-- name: GetAuthUserCredentialInfo :one
+SELECT u.id, u.email, u.status, c.password
+FROM auth_users AS u
+JOIN auth_user_credentials AS c ON u.id = c.user_id
+WHERE
+    u.id = @id
+    AND u.deleted_at IS NULL;
+
+-- name: GetAuthUserByEmail :one
+SELECT * 
+FROM auth_users 
 WHERE 
-    id = @id AND 
-    deleted_at IS NULL;
+    lower(email) = lower(@email)
+    AND deleted_at IS NULL;
 
--- name: UserGetValidByIDForUpdate :one
-SELECT * FROM users 
+-- name: GetAuthUserByEmailIncludeDeleted :one
+SELECT * 
+FROM auth_users
 WHERE 
-    id = @id AND 
-    status = 1 AND -- mean: user status is active
-    deleted_at IS NULL
-FOR UPDATE;
+    lower(email) = lower(@email);
 
--- name: UserCreate :exec
-INSERT INTO users (id, email, full_name, avatar_url, status)
+-- name: GetAuthChallengeUserByTokenPurpose :one
+SELECT u.id AS user_id, u.status, u.email, c.id, c.token, c.purpose, c.metadata
+FROM auth_challenges c
+JOIN auth_users AS u ON u.id = c.user_id
+WHERE 
+    c.token = @token 
+    AND c.purpose = @purpose 
+    AND c.expires_at > NOW();
+
+-- name: GetAuthUserRefreshToken :one
+SELECT rt.id, rt.user_id, rt.token, rt.expires_at, rt.revoked, rt.replaced_by_token_id, u.email, u.status AS user_status
+FROM auth_refresh_tokens rt
+JOIN auth_users u ON u.id = rt.user_id
+WHERE 
+    rt.token = @token
+    AND u.deleted_at IS NULL;
+
+-- name: GetAuthMFAFactorByUserID :many
+SELECT * FROM auth_mfa_factors 
+WHERE 
+    user_id = @user_id AND 
+    is_verified = @is_verified
+ORDER BY created_at ASC;
+
+-- ***** ***** *****
+-- CREATE DATA
+-- ***** ***** *****
+
+-- name: CreateAuthRefreshToken :exec
+INSERT INTO auth_refresh_tokens (id, user_id, token, expires_at, metadata) 
+VALUES (@id, @user_id, @token, @expires_at, @metadata);
+
+-- name: CreateAuthChallenge :exec
+INSERT INTO auth_challenges (id, user_id, token, purpose, expires_at, metadata) 
+VALUES (@id, @user_id, @token, @purpose, @expires_at, @metadata);
+
+-- name: CreateAuthMFAFactor :exec
+INSERT INTO auth_mfa_factors (id, user_id, type, friendly_name, secret, key_version, is_verified)
+VALUES (@id, @user_id, @type, @friendly_name, @secret, @key_version, @is_verified);
+
+-- name: CreateAuthUser :exec
+INSERT INTO auth_users (id, email, full_name, avatar_url, status)
 VALUES (@id, @email, @full_name, @avatar_url, @status);
 
--- name: UserUpdateStatus :exec
-UPDATE users
-SET status = @new_status
-WHERE
-    id = @id AND
-    status = @old_status AND
-    deleted_at IS NULL;
+-- name: CreateAuthUserCredential :exec
+INSERT INTO auth_user_credentials (user_id, password)
+VALUES (@user_id, @password);
 
--- ----- ----- ----- ----- -----
--- user_credentials table
--- ----- ----- ----- ----- -----
+-- ***** ***** *****
+-- UPDATE DATA
+-- ***** ***** *****
 
--- name: UserCredentialGetByUserID :one
-SELECT * FROM user_credentials 
+-- name: RevokeAuthRefreshToken :exec
+UPDATE auth_refresh_tokens 
+SET 
+    revoked = TRUE
+WHERE 
+    token = @token;
+
+-- name: RevokeAllAuthRefreshToken :exec
+UPDATE auth_refresh_tokens 
+SET 
+    revoked = TRUE
 WHERE 
     user_id = @user_id;
 
--- name: UserCredentialCreate :exec
-INSERT INTO user_credentials (user_id, password)
-VALUES (@user_id, @password);
-
--- name: UserCredentialUpdate :exec
-UPDATE user_credentials 
+-- name: ReplaceAuthRefreshToken :exec
+UPDATE auth_refresh_tokens 
 SET 
-    password = @password
-WHERE user_id = @user_id;
+    revoked = TRUE, 
+    replaced_by_token_id = @new_token_id::BIGINT
+WHERE 
+    id = @old_token_id;
 
--- ----- ----- ----- ----- -----
--- user_password_resets table
--- ----- ----- ----- ----- -----
-
--- name: UserPasswordResetCreate :exec
-INSERT INTO user_password_resets (user_id, token, expires_at)
-VALUES (@user_id, @token, @expires_at);
-
--- name: UserPasswordResetGetValidForUpdate :one
-SELECT *
-FROM user_password_resets 
-WHERE
-    token = @token AND
-    used_at IS NULL AND
-    expires_at > @now
-FOR UPDATE;
-
--- name: UserPasswordResetMarkUsed :exec
-UPDATE user_password_resets
-SET used_at = @used_at
+-- name: UpdateAuthUserName :exec
+UPDATE auth_users
+SET full_name = @full_name
 WHERE
     id = @id AND
-    used_at IS NULL;
+    deleted_at IS NULL;
 
--- ----- ----- ----- ----- -----
--- mfa_factors table
--- ----- ----- ----- ----- -----
-
--- name: MfaFactorGetByUserID :many
-SELECT * FROM mfa_factors 
+-- name: UpdateAuthUserCredential :exec
+UPDATE auth_user_credentials 
+SET 
+    password = @password
 WHERE 
-    user_id = @user_id AND 
-    is_verified = @is_verified;
+    user_id = @user_id;
+
+-- name: MarkUsedAuthChallengeByID :exec
+UPDATE auth_challenges 
+SET
+    used_at = @used_at
+WHERE 
+    id = @id;
+
+-- ***** ***** *****
+-- DELETE DATA
+-- ***** ***** *****
+
+-- name: DeleteAuthChallengeByID :exec
+DELETE FROM auth_challenges WHERE id = @id;

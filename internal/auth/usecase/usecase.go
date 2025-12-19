@@ -2,191 +2,124 @@ package usecase
 
 import (
 	"context"
-	"errors"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/shandysiswandi/gobite/internal/auth/entity"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
+	"github.com/shandysiswandi/gobite/internal/pkg/clock"
+	"github.com/shandysiswandi/gobite/internal/pkg/config"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/hash"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/mfacrypto"
+	"github.com/shandysiswandi/gobite/internal/pkg/otp"
+	"github.com/shandysiswandi/gobite/internal/pkg/uid"
+	"github.com/shandysiswandi/gobite/internal/pkg/validator"
+)
+
+const (
+	keyPayloadUserID    = "user_id"
+	keyPayloadUserEmail = "user_email"
 )
 
 type repoMessaging interface {
 	PublishUserRegistration(ctx context.Context, msg entity.UserRegistrationMessage) error
+	PublishUserForgotPassword(ctx context.Context, msg entity.UserForgotPasswordMessage) error
 }
 
 type repoCache interface {
-	SaveTokensID(ctx context.Context, acID, refID string) error
-	DeleteTokensID(ctx context.Context, acID, refID string) error
-	IsTokenIDExist(ctx context.Context, id string) (bool, error)
-	RotateTokensID(ctx context.Context, oldRefID, newAcID, newRefID string) error
+	RegisterResendAllow(ctx context.Context, key string, ttl time.Duration) (allowed bool, err error)
 }
 
 type repoDB interface {
-	// users
-	UserGetByEmail(ctx context.Context, email string) (*entity.User, error)
-	UserGetByID(ctx context.Context, id int64) (*entity.User, error)
-	UserUpdateStatus(ctx context.Context, id int64, oldStatus, newStatus entity.UserStatus) error
-
-	// user_credentials
-	UserCredentialGetByUserID(ctx context.Context, userID int64) (*entity.UserCredential, error)
-	UserCredentialUpdate(ctx context.Context, userID int64, hash string) error
-
-	// user + user_credentials (transaction)
+	GetUserLoginInfo(ctx context.Context, email string) (*entity.UserLoginInfo, error)
+	GetUserCredentialInfo(ctx context.Context, id int64) (*entity.UserCredentialInfo, error)
+	CreateRefreshToken(ctx context.Context, in entity.RefreshToken) error
+	RevokeRefreshToken(ctx context.Context, token string) error
+	RevokeAllRefreshToken(ctx context.Context, userID int64) error
+	CreateChallenge(ctx context.Context, in entity.Challenge) error
+	GetChallengeUserByTokenPurpose(ctx context.Context, token string, p entity.ChallengePurpose) (*entity.ChallengeUser, error)
+	DeleteChallenge(ctx context.Context, id int64) error
+	GetUserRefreshToken(ctx context.Context, token string) (*entity.UserRefreshToken, error)
+	RotateRefreshToken(ctx context.Context, ro entity.RotateRefreshToken) error
+	GetUserByEmail(ctx context.Context, email string, includeDeleted bool) (*entity.User, error)
+	GetMFAFactorByUserID(ctx context.Context, userID int64, isVerified bool) ([]entity.MFAFactor, error)
+	CreateMFAFactorAndChallenge(ctx context.Context, factor entity.MFAFactor, challe entity.Challenge) error
+	UpdateUserProfile(ctx context.Context, id int64, fullName string) error
 	UserRegistration(ctx context.Context, user entity.User, hash string) error
-
-	// mfa_factors
-	MfaFactorGetByUserID(ctx context.Context, userID int64) ([]entity.MfaFactor, error)
-
-	// user_password_resets
-	UserPasswordResetCreate(ctx context.Context, userID int64, token string, expiresAt time.Time) error
-
-	// user + user_password_resets (transaction)
-	UserPasswordResetConsume(ctx context.Context, token string, newHash string, now time.Time) error
+	UpdateUserCredential(ctx context.Context, userID int64, hash string) error
+	// CreateUserPasswordReset(ctx context.Context, userID int64, token string, expiresAt time.Time) error
 }
 
 type Usecase struct {
 	repoDB        repoDB
 	repoCache     repoCache
 	repoMessaging repoMessaging
-
-	validator pkgvalidator.Validator
-	cfg       pkgconfig.Config
-	hash      pkghash.Hash
-	uid       pkguid.NumberID
-	uuid      pkguid.StringID
-	totp      pkgotp.OTP
-	clock     pkgclock.Clocker
-
-	jwtTempToken    pkgjwt.JWT[map[string]any]
-	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
-	jwtRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
+	validator     validator.Validator
+	cfg           config.Config
+	password      hash.Hash
+	hash          hash.Hash
+	mfaCrypto     mfacrypto.Encryptor
+	uid           uid.NumberID
+	uuid          uid.StringID
+	oid           uid.StringID
+	totp          otp.OTP
+	clock         clock.Clocker
+	jwt           jwt.JWT
 }
 
 type Dependency struct {
 	RepoDB        repoDB
 	RepoCache     repoCache
 	RepoMessaging repoMessaging
-
-	Validator pkgvalidator.Validator
-	Config    pkgconfig.Config
-	Hash      pkghash.Hash
-	UID       pkguid.NumberID
-	UUID      pkguid.StringID
-	Totp      pkgotp.OTP
-	Clock     pkgclock.Clocker
-
-	JWTTempToken    pkgjwt.JWT[map[string]any]
-	JWTAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
-	JWTRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
+	Validator     validator.Validator
+	Config        config.Config
+	Password      hash.Hash
+	Hash          hash.Hash
+	MFACrypto     mfacrypto.Encryptor
+	UID           uid.NumberID
+	UUID          uid.StringID
+	OID           uid.StringID
+	Totp          otp.OTP
+	Clock         clock.Clocker
+	JWT           jwt.JWT
 }
 
 func NewAuth(dep Dependency) *Usecase {
 	return &Usecase{
-		repoDB:          dep.RepoDB,
-		repoCache:       dep.RepoCache,
-		repoMessaging:   dep.RepoMessaging,
-		validator:       dep.Validator,
-		hash:            dep.Hash,
-		cfg:             dep.Config,
-		uid:             dep.UID,
-		uuid:            dep.UUID,
-		totp:            dep.Totp,
-		clock:           dep.Clock,
-		jwtTempToken:    dep.JWTTempToken,
-		jwtAccessToken:  dep.JWTAccessToken,
-		jwtRefreshToken: dep.JWTRefreshToken,
+		repoDB:        dep.RepoDB,
+		repoCache:     dep.RepoCache,
+		repoMessaging: dep.RepoMessaging,
+		validator:     dep.Validator,
+		password:      dep.Password,
+		hash:          dep.Hash,
+		mfaCrypto:     dep.MFACrypto,
+		cfg:           dep.Config,
+		uid:           dep.UID,
+		uuid:          dep.UUID,
+		oid:           dep.OID,
+		totp:          dep.Totp,
+		clock:         dep.Clock,
+		jwt:           dep.JWT,
 	}
 }
 
-func (s *Usecase) getUserByEmail(ctx context.Context, email string) (*entity.User, error) {
-	user, err := s.repoDB.UserGetByEmail(ctx, email)
-	if errors.Is(err, pkgerror.ErrNotFound) {
-		slog.WarnContext(ctx, "user account not found")
-		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
+func (s *Usecase) ensureUserAllowedToLogin(ctx context.Context, userID int64, status entity.UserStatus) error {
+	sts := status.Ensure()
+	switch sts {
+	case entity.UserStatusUnknown:
+		slog.WarnContext(ctx, "user account status is unrecognized", "user_id", userID)
+		return goerror.NewServer(entity.ErrUserStatusUnknown)
+
+	case entity.UserStatusUnverified:
+		slog.WarnContext(ctx, "user account is unverified", "user_id", userID)
+		return goerror.NewBusiness("email not verified", goerror.CodeForbidden)
+
+	case entity.UserStatusBanned:
+		slog.WarnContext(ctx, "user account is banned", "user_id", userID)
+		return goerror.NewBusiness("account is banned", goerror.CodeForbidden)
+
+	default:
+		return nil
 	}
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to repo get user by email", "error", err)
-		return nil, pkgerror.NewServer(err)
-	}
-
-	if err := s.ensureUserActive(ctx, user); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func (s *Usecase) getUserByID(ctx context.Context, userID int64) (*entity.User, error) {
-	user, err := s.repoDB.UserGetByID(ctx, userID)
-	if errors.Is(err, pkgerror.ErrNotFound) {
-		slog.WarnContext(ctx, "user account not found", "user_id", userID)
-		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
-	}
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to repo get user by id", "user_id", userID, "error", err)
-		return nil, pkgerror.NewServer(err)
-	}
-
-	if err := s.ensureUserActive(ctx, user); err != nil {
-		return nil, err
-	}
-
-	return user, nil
-}
-
-func (s *Usecase) ensureUserActive(ctx context.Context, user *entity.User) error {
-	if user.Status == entity.UserStatusUnverified {
-		slog.WarnContext(ctx, "user not verified", "user_id", user.ID)
-		return pkgerror.NewBusiness("user account is not verified", pkgerror.CodeUnauthorized)
-	}
-
-	if user.Status == entity.UserStatusBanned {
-		slog.WarnContext(ctx, "user account banned", "user_id", user.ID)
-		return pkgerror.NewBusiness("user account is banned", pkgerror.CodeUnauthorized)
-	}
-
-	return nil
-}
-
-func (s *Usecase) getCredential(ctx context.Context, userID int64) (*entity.UserCredential, error) {
-	userCred, err := s.repoDB.UserCredentialGetByUserID(ctx, userID)
-	if errors.Is(err, pkgerror.ErrNotFound) {
-		slog.WarnContext(ctx, "user credential not found", "user_id", userID)
-		return nil, pkgerror.NewBusiness("invalid email or password", pkgerror.CodeUnauthorized)
-	}
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to repo get user credential by user_id", "user_id", userID, "error", err)
-		return nil, pkgerror.NewServer(err)
-	}
-
-	return userCred, nil
-}
-
-func (s *Usecase) issueTokens(ctx context.Context, user *entity.User) (acToken, acJTI, refToken, refJTI string, err error) {
-	subject := strconv.FormatInt(user.ID, 10)
-
-	acToken, acJTI, err = s.jwtAccessToken.Generate(subject, pkgjwt.AccessTokenPayload{
-		UserID: user.ID,
-		Email:  user.Email,
-	})
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to generate access jwt token", "user_id", user.ID, "error", err)
-		return "", "", "", "", pkgerror.NewServer(err)
-	}
-
-	refToken, refJTI, err = s.jwtRefreshToken.Generate(subject, pkgjwt.RefreshTokenPayload{UserID: user.ID})
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to generate refresh jwt token", "user_id", user.ID, "error", err)
-		return "", "", "", "", pkgerror.NewServer(err)
-	}
-
-	return acToken, acJTI, refToken, refJTI, nil
 }

@@ -3,6 +3,7 @@ package entity
 import "errors"
 
 var (
+	ErrUserStatusUnknown    = errors.New("auth: user status is unknown")
 	ErrUserStatusBanned     = errors.New("auth: user status is banned")
 	ErrUserStatusUnverified = errors.New("auth: user status verify yet")
 )
@@ -10,9 +11,11 @@ var (
 type UserStatus int16
 
 const (
-	UserStatusUnverified UserStatus = 0
-	UserStatusActive     UserStatus = 1
-	UserStatusBanned     UserStatus = 2
+	UserStatusUnknown    UserStatus = 0
+	UserStatusUnverified UserStatus = 1
+	UserStatusActive     UserStatus = 2
+	UserStatusBanned     UserStatus = 3
+	UserStatusDeleted    UserStatus = 4
 )
 
 func (us UserStatus) String() string {
@@ -28,15 +31,43 @@ func (us UserStatus) String() string {
 	}
 }
 
-func (us UserStatus) Validate() error {
+func (us UserStatus) Ensure() UserStatus {
 	switch us {
 	case UserStatusActive:
-		return nil
+		return UserStatusActive
 	case UserStatusBanned:
-		return ErrUserStatusBanned
+		return UserStatusBanned
 	case UserStatusUnverified:
-		return ErrUserStatusUnverified
+		return UserStatusUnverified
 	default:
-		return ErrUserStatusUnverified
+		return UserStatusUnknown
+	}
+}
+
+type ChallengePurpose int16
+
+const (
+	ChallengePurposeUnknown             ChallengePurpose = 0
+	ChallengePurposeMFALogin            ChallengePurpose = 1
+	ChallengePurposeMFASetupConfirm     ChallengePurpose = 2
+	ChallengePurposePasswordForgotReset ChallengePurpose = 3
+)
+
+type MFAType int16
+
+const (
+	MFATypeUnknown MFAType = 0
+	MFATypeTOTP    MFAType = 1
+	MFATypeSMS     MFAType = 2
+)
+
+func (mt MFAType) String() string {
+	switch mt {
+	case MFATypeTOTP:
+		return "TOTP"
+	case MFATypeSMS:
+		return "SMS"
+	default:
+		return "Unknown"
 	}
 }

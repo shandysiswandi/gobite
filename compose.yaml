@@ -36,12 +36,26 @@ services:
       retries: 5
       start_period: 10s
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
+  mailer:
+    image: axllent/mailpit:v1.28.0 # mailhog/mailhog:v1.0.1
     pull_policy: missing
     ports:
       - "1025:1025" # SMTP server
       - "8025:8025" # Web UI
+    networks:
+      - gobite-network
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API Server
+      - "9001:9001" # Web UI
+    environment:
+      MINIO_ROOT_USER: user
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - minio_gobite_data:/data
     networks:
       - gobite-network
 
@@ -90,6 +104,7 @@ volumes:
   postgres_gobite_data:
   redis_gobite_data:
   nsq_gobite_data:
+  minio_gobite_data:
 
 networks:
   gobite-network:

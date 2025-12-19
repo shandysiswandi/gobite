@@ -2,9 +2,14 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"strconv"
+	"time"
 
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
+	"github.com/shandysiswandi/gobite/internal/auth/entity"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
 )
 
 type RefreshTokenInput struct {
@@ -18,42 +23,83 @@ type RefreshTokenOutput struct {
 
 func (s *Usecase) RefreshToken(ctx context.Context, in RefreshTokenInput) (*RefreshTokenOutput, error) {
 	if err := s.validator.Validate(in); err != nil {
-		return nil, pkgerror.NewInvalidInput(err)
+		return nil, goerror.NewInvalidInput(err)
 	}
 
-	refClaims, err := s.jwtRefreshToken.Verify(in.RefreshToken)
+	oldRefreshTokenHash, err := s.hash.Hash(in.RefreshToken)
 	if err != nil {
-		slog.WarnContext(ctx, "invalid refresh token", "error", err)
-		return nil, pkgerror.NewBusiness("invalid refresh token", pkgerror.CodeUnauthorized)
+		slog.ErrorContext(ctx, "failed to hash old refresh token", "error", err)
+		return nil, goerror.NewServer(err)
 	}
 
-	isStillValid, err := s.repoCache.IsTokenIDExist(ctx, refClaims.ID())
-	if err != nil {
-		slog.ErrorContext(ctx, "failed to check refresh token jti", "refresh_jti", refClaims.ID(), "error", err)
-		return nil, pkgerror.NewServer(err)
+	rt, err := s.repoDB.GetUserRefreshToken(ctx, string(oldRefreshTokenHash))
+	if errors.Is(err, goerror.ErrNotFound) {
+		slog.WarnContext(ctx, "user refresh token not found")
+		return nil, goerror.NewBusiness("invalid or expired refresh token", goerror.CodeUnauthorized)
 	}
-	if !isStillValid {
-		slog.WarnContext(ctx, "refresh token revoked or expired in cache", "refresh_jti", refClaims.ID())
-		return nil, pkgerror.NewBusiness("refresh token revoked or expired", pkgerror.CodeUnauthorized)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to repo get user refresh token", "error", err)
+		return nil, goerror.NewServer(err)
 	}
 
-	user, err := s.getUserByID(ctx, refClaims.Payload().UserID)
-	if err != nil {
+	// SECURITY CHECK: Reuse Detection for rotated tokens only.
+	if rt.RefreshRevoked {
+		if rt.RefreshReplacedByTokenID != nil {
+			// CRITICAL: The user is trying to use a token that was already rotated.
+			// This implies the token was stolen. Invalidate ALL tokens for this user.
+			if err := s.repoDB.RevokeAllRefreshToken(ctx, rt.UserID); err != nil {
+				slog.ErrorContext(ctx, "failed to repo revoke all refresh token", "user_id", rt.UserID, "error", err)
+			}
+
+			slog.WarnContext(ctx, "SECURITY: refresh token reuse detected")
+			return nil, goerror.NewBusiness("token reuse detected, please log in again", goerror.CodeForbidden)
+		}
+
+		slog.WarnContext(ctx, "refresh token is revoked", "refresh_token_id", rt.RefreshID)
+		return nil, goerror.NewBusiness("invalid or expired refresh token", goerror.CodeUnauthorized)
+	}
+
+	if s.clock.Now().After(rt.RefreshExpiresAt) {
+		slog.WarnContext(ctx, "user refresh token is expired")
+		return nil, goerror.NewBusiness("invalid or expired refresh token", goerror.CodeUnauthorized)
+	}
+
+	if err := s.ensureUserAllowedToLogin(ctx, rt.UserID, rt.UserStatus); err != nil {
 		return nil, err
 	}
 
-	acToken, acJTI, refToken, refJTI, err := s.issueTokens(ctx, user)
+	newRefreshToken := s.oid.Generate()
+	newRefreshTokenHash, err := s.hash.Hash(newRefreshToken)
 	if err != nil {
-		return nil, err
+		slog.ErrorContext(ctx, "failed to hash new refresh token", "error", err)
+		return nil, goerror.NewServer(err)
 	}
 
-	if err := s.repoCache.RotateTokensID(ctx, refClaims.ID(), acJTI, refJTI); err != nil {
-		slog.ErrorContext(ctx, "failed to rotate tokens jti", "old_refresh_jti", refClaims.ID(), "new_access_jti", acJTI, "new_refresh_jti", refJTI, "error", err)
-		return nil, pkgerror.NewServer(err)
+	acToken, err := s.jwt.Generate(
+		jwt.WithID(s.uuid.Generate()),
+		jwt.WithSubject(strconv.FormatInt(rt.UserID, 10)),
+		jwt.WithPayloadValue(keyPayloadUserID, rt.UserID),
+		jwt.WithPayloadValue(keyPayloadUserEmail, rt.UserEmail),
+	)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to generate access jwt token", "user_id", rt.UserID, "error", err)
+		return nil, goerror.NewServer(err)
+	}
+
+	err = s.repoDB.RotateRefreshToken(ctx, entity.RotateRefreshToken{
+		NewID:        s.uid.Generate(),
+		OldID:        rt.RefreshID,
+		UserID:       rt.UserID,
+		NewToken:     string(newRefreshTokenHash),
+		NewExpiresAt: s.clock.Now().Add(time.Duration(s.cfg.GetInt("modules.auth.refresh_token_ttl")) * 24 * time.Hour),
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to repo rotate refresh token", "error", err)
+		return nil, goerror.NewServer(err)
 	}
 
 	return &RefreshTokenOutput{
 		AccessToken:  acToken,
-		RefreshToken: refToken,
+		RefreshToken: newRefreshToken,
 	}, nil
 }

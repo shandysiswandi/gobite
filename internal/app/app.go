@@ -6,18 +6,19 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkglog"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmessaging"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
+	"github.com/shandysiswandi/gobite/internal/pkg/clock"
+	"github.com/shandysiswandi/gobite/internal/pkg/config"
+	"github.com/shandysiswandi/gobite/internal/pkg/goroutine"
+	"github.com/shandysiswandi/gobite/internal/pkg/hash"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/logging"
+	"github.com/shandysiswandi/gobite/internal/pkg/mail"
+	"github.com/shandysiswandi/gobite/internal/pkg/messaging"
+	"github.com/shandysiswandi/gobite/internal/pkg/mfacrypto"
+	"github.com/shandysiswandi/gobite/internal/pkg/otp"
+	"github.com/shandysiswandi/gobite/internal/pkg/router"
+	"github.com/shandysiswandi/gobite/internal/pkg/uid"
+	"github.com/shandysiswandi/gobite/internal/pkg/validator"
 )
 
 type App struct {
@@ -25,28 +26,29 @@ type App struct {
 	cancel context.CancelFunc
 
 	// configuration
-	config pkgconfig.Config
+	config config.Config
 
 	// libraries
-	goroutine       *pkgroutine.Manager
-	validator       pkgvalidator.Validator
-	clock           pkgclock.Clocker
-	hash            pkghash.Hash
-	uid             pkguid.NumberID
-	uuid            pkguid.StringID
-	totp            pkgotp.OTP
-	jwtTempToken    pkgjwt.JWT[map[string]any]
-	jwtAccessToken  pkgjwt.JWT[pkgjwt.AccessTokenPayload]
-	jwtRefreshToken pkgjwt.JWT[pkgjwt.RefreshTokenPayload]
+	goroutine *goroutine.Manager
+	validator validator.Validator
+	clock     clock.Clocker
+	hash      hash.Hash
+	password  hash.Hash
+	uid       uid.NumberID
+	oid       uid.StringID
+	uuid      uid.StringID
+	totp      otp.OTP
+	jwt       jwt.JWT
+	mfacry    mfacrypto.Encryptor
 
 	// resources
 	dbConn    *pgxpool.Pool
 	cacheConn *redis.Client
-	mail      pkgmail.Mail
-	messaging pkgmessaging.Messaging
+	mail      mail.Mail
+	messaging messaging.Messaging
 
 	// server
-	router     *pkgrouter.Router
+	router     *router.Router
 	httpServer *http.Server
 
 	//
@@ -54,7 +56,7 @@ type App struct {
 }
 
 func New() *App {
-	pkglog.InitLogging()
+	logging.InitLogging()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	app := &App{

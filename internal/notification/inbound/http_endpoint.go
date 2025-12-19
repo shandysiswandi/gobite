@@ -7,8 +7,8 @@ import (
 	"strconv"
 
 	"github.com/shandysiswandi/gobite/internal/notification/usecase"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/router"
 )
 
 type HTTPEndpoint struct {
@@ -22,7 +22,7 @@ func (h *HTTPEndpoint) ListNotifications(ctx context.Context, r *http.Request) (
 	if v := r.URL.Query().Get("limit"); v != "" {
 		n, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
-			return nil, pkgerror.NewBusiness("invalid limit", pkgerror.CodeInvalidInput)
+			return nil, goerror.NewBusiness("invalid limit", goerror.CodeInvalidInput)
 		}
 		limit = int32(n)
 	}
@@ -30,7 +30,7 @@ func (h *HTTPEndpoint) ListNotifications(ctx context.Context, r *http.Request) (
 	if v := r.URL.Query().Get("offset"); v != "" {
 		n, err := strconv.ParseInt(v, 10, 32)
 		if err != nil {
-			return nil, pkgerror.NewBusiness("invalid offset", pkgerror.CodeInvalidInput)
+			return nil, goerror.NewBusiness("invalid offset", goerror.CodeInvalidInput)
 		}
 		offset = int32(n)
 	}
@@ -110,7 +110,7 @@ func (h *HTTPEndpoint) DeleteNotification(ctx context.Context, r *http.Request) 
 func (h *HTTPEndpoint) RegisterDevice(ctx context.Context, r *http.Request) (any, error) {
 	var req RegisterDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, pkgerror.NewInvalidFormat()
+		return nil, goerror.NewInvalidFormat()
 	}
 
 	if err := h.uc.RegisterDevice(ctx, usecase.RegisterDeviceInput{
@@ -126,7 +126,7 @@ func (h *HTTPEndpoint) RegisterDevice(ctx context.Context, r *http.Request) (any
 func (h *HTTPEndpoint) RemoveDevice(ctx context.Context, r *http.Request) (any, error) {
 	var req RemoveDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		return nil, pkgerror.NewInvalidFormat()
+		return nil, goerror.NewInvalidFormat()
 	}
 
 	if err := h.uc.RemoveDevice(ctx, usecase.RemoveDeviceInput{DeviceToken: req.DeviceToken}); err != nil {
@@ -137,10 +137,10 @@ func (h *HTTPEndpoint) RemoveDevice(ctx context.Context, r *http.Request) (any, 
 }
 
 func parseNotificationID(ctx context.Context) (int64, error) {
-	raw := pkgrouter.GetParam(ctx, "id")
+	raw := router.GetParam(ctx, "id")
 	id, err := strconv.ParseInt(raw, 10, 64)
 	if err != nil || id <= 0 {
-		return 0, pkgerror.NewBusiness("invalid notification id", pkgerror.CodeInvalidInput)
+		return 0, goerror.NewBusiness("invalid notification id", goerror.CodeInvalidInput)
 	}
 	return id, nil
 }

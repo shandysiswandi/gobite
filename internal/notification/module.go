@@ -7,30 +7,29 @@ import (
 	"github.com/shandysiswandi/gobite/internal/notification/inbound"
 	"github.com/shandysiswandi/gobite/internal/notification/outbound"
 	"github.com/shandysiswandi/gobite/internal/notification/usecase"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmessaging"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
+	"github.com/shandysiswandi/gobite/internal/pkg/clock"
+	"github.com/shandysiswandi/gobite/internal/pkg/config"
+	"github.com/shandysiswandi/gobite/internal/pkg/goroutine"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/mail"
+	"github.com/shandysiswandi/gobite/internal/pkg/messaging"
+	"github.com/shandysiswandi/gobite/internal/pkg/router"
+	"github.com/shandysiswandi/gobite/internal/pkg/uid"
+	"github.com/shandysiswandi/gobite/internal/pkg/validator"
 )
 
 type Dependency struct {
 	Ctx       context.Context
 	DBConn    *pgxpool.Pool
-	Messaging pkgmessaging.Messaging
-	Config    pkgconfig.Config
-	UID       pkguid.NumberID
-	Clock     pkgclock.Clocker
-	Goroutine *pkgroutine.Manager
-	Validator pkgvalidator.Validator
-	Router    *pkgrouter.Router
-	Mail      pkgmail.Mail
-
-	JWTTempToken pkgjwt.JWT[map[string]any]
+	Messaging messaging.Messaging
+	Config    config.Config
+	UID       uid.NumberID
+	Clock     clock.Clocker
+	Goroutine *goroutine.Manager
+	Validator validator.Validator
+	Router    *router.Router
+	Mail      mail.Mail
+	JWT       jwt.JWT
 }
 
 func New(dep Dependency) error {
@@ -38,18 +37,18 @@ func New(dep Dependency) error {
 	repoMail := outbound.NewMail(dep.Mail)
 
 	uc := usecase.NewNotification(usecase.Dependency{
-		RepoDB:       dbNotif,
-		Config:       dep.Config,
-		UID:          dep.UID,
-		Clock:        dep.Clock,
-		Validator:    dep.Validator,
-		JWTTempToken: dep.JWTTempToken,
-		RepoMail:     repoMail,
+		RepoDB:    dbNotif,
+		Config:    dep.Config,
+		UID:       dep.UID,
+		Clock:     dep.Clock,
+		Validator: dep.Validator,
+		JWT:       dep.JWT,
+		RepoMail:  repoMail,
 	})
 
 	inbound.RegisterHTTPEndpoint(dep.Router, uc)
-	if dep.Ctx != nil && dep.Goroutine != nil && dep.Messaging != nil {
-		inbound.RegisterMQConsumer(dep.Ctx, dep.Goroutine, dep.Messaging, uc)
+	if dep.Ctx != nil && dep.Goroutine != nil && dep.Messaging != nil && dep.Config != nil {
+		inbound.RegisterMQConsumer(dep.Ctx, dep.Config, dep.Goroutine, dep.Messaging, uc)
 	}
 
 	return nil

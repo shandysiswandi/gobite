@@ -4,63 +4,75 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/url"
 	"strings"
 
 	"github.com/shandysiswandi/gobite/internal/auth/entity"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
 )
 
 type RegisterInput struct {
-	Email    string `validate:"required,lowercase,email"`
+	Email    string `validate:"required,email"`
 	Password string `validate:"required,password"`
-	FullName string `validate:"required,min=2,max=100,alphaspace"`
+	FullName string `validate:"required,min=5,max=100,alphaspace"`
 }
 
-type RegisterOutput struct {
-	IsNeedVerify bool
-}
+func (s *Usecase) Register(ctx context.Context, in RegisterInput) error {
+	email := strings.TrimSpace(strings.ToLower(in.Email))
+	fullName := strings.TrimSpace(in.FullName)
 
-func (s *Usecase) Register(ctx context.Context, in RegisterInput) (*RegisterOutput, error) {
+	in = RegisterInput{
+		Email:    email,
+		Password: in.Password,
+		FullName: fullName,
+	}
+
 	if err := s.validator.Validate(in); err != nil {
-		return nil, pkgerror.NewInvalidInput(err)
+		return goerror.NewInvalidInput(err)
 	}
 
-	_, err := s.repoDB.UserGetByEmail(ctx, in.Email)
+	user, err := s.repoDB.GetUserByEmail(ctx, email, true)
 	if err == nil {
-		slog.WarnContext(ctx, "email already registered")
-		return nil, pkgerror.NewBusiness("email is already registered", pkgerror.CodeConflict)
+		switch user.Status {
+		case entity.UserStatusActive, entity.UserStatusUnverified, entity.UserStatusDeleted:
+			slog.WarnContext(ctx, "email already registered", "email", email)
+			return goerror.NewBusiness("email is already registered", goerror.CodeConflict)
+		default:
+			slog.WarnContext(ctx, "user is not eligible", "email", email)
+			return goerror.NewBusiness("user cannot be registered", goerror.CodeForbidden)
+		}
 	}
-	if !errors.Is(err, pkgerror.ErrNotFound) {
-		slog.ErrorContext(ctx, "failed to repo get user by email", "error", err)
-		return nil, pkgerror.NewServer(err)
+	if !errors.Is(err, goerror.ErrNotFound) {
+		slog.ErrorContext(ctx, "failed to repo get user by email", "email", email, "error", err)
+		return goerror.NewServer(err)
 	}
 
-	hashedPassword, err := s.hash.Hash(in.Password)
+	hashedPassword, err := s.password.Hash(in.Password)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to hash password", "error", err)
-		return nil, pkgerror.NewServer(err)
+		return goerror.NewServer(err)
 	}
 
-	user := entity.User{
+	newUser := entity.User{
 		ID:        s.uid.Generate(),
-		Email:     in.Email,
-		FullName:  strings.TrimSpace(in.FullName),
-		AvatarURL: "",
+		Email:     email,
+		FullName:  fullName,
+		AvatarURL: "https://ui-avatars.com/api/?name=" + url.QueryEscape(fullName),
 		Status:    entity.UserStatusUnverified,
 	}
 
-	if err := s.repoDB.UserRegistration(ctx, user, string(hashedPassword)); err != nil {
-		slog.ErrorContext(ctx, "failed to repo user registration", "user_id", user.ID, "error", err)
-		return nil, pkgerror.NewServer(err)
+	if err := s.repoDB.UserRegistration(ctx, newUser, string(hashedPassword)); err != nil {
+		slog.ErrorContext(ctx, "failed to repo user registration", "email", newUser.Email, "error", err)
+		return goerror.NewServer(err)
 	}
 
 	if err := s.repoMessaging.PublishUserRegistration(ctx, entity.UserRegistrationMessage{
-		UserID:   user.ID,
-		Email:    user.Email,
-		FullName: user.FullName,
+		UserID:   newUser.ID,
+		Email:    newUser.Email,
+		FullName: newUser.FullName,
 	}); err != nil {
-		slog.ErrorContext(ctx, "failed to publish user registration", "user_id", user.ID, "error", err)
+		slog.ErrorContext(ctx, "failed to publish user registration", "user_id", newUser.ID, "error", err)
 	}
 
-	return &RegisterOutput{IsNeedVerify: true}, nil
+	return nil
 }

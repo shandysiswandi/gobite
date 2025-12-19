@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"encoding/base64"
 	"log/slog"
 	"net/http"
 	"os"
@@ -11,20 +12,22 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/nats-io/nats.go"
 	"github.com/nsqio/go-nsq"
-	"github.com/pquerna/otp"
+	libOTP "github.com/pquerna/otp"
 	"github.com/redis/go-redis/v9"
+	"github.com/rs/cors"
 	"github.com/segmentio/kafka-go"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgclock"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgconfig"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkghash"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmail"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgmessaging"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgotp"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgrouter"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgroutine"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkguid"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgvalidator"
+	"github.com/shandysiswandi/gobite/internal/pkg/clock"
+	"github.com/shandysiswandi/gobite/internal/pkg/config"
+	"github.com/shandysiswandi/gobite/internal/pkg/goroutine"
+	"github.com/shandysiswandi/gobite/internal/pkg/hash"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/mail"
+	"github.com/shandysiswandi/gobite/internal/pkg/messaging"
+	"github.com/shandysiswandi/gobite/internal/pkg/mfacrypto"
+	"github.com/shandysiswandi/gobite/internal/pkg/otp"
+	"github.com/shandysiswandi/gobite/internal/pkg/router"
+	"github.com/shandysiswandi/gobite/internal/pkg/uid"
+	"github.com/shandysiswandi/gobite/internal/pkg/validator"
 	"google.golang.org/api/option"
 )
 
@@ -34,7 +37,7 @@ func (a *App) initConfig() {
 		path = "./config/config.yaml"
 	}
 
-	cfg, err := pkgconfig.NewViper(path)
+	cfg, err := config.NewViper(path)
 	if err != nil {
 		slog.Error("failed to init config", "error", err)
 		os.Exit(1)
@@ -47,77 +50,66 @@ func (a *App) initConfig() {
 }
 
 func (a *App) initLibraries() {
-	a.clock = pkgclock.New()
-	a.uuid = pkguid.NewUUID()
-	a.goroutine = pkgroutine.NewManager(100)
-	a.hash = pkghash.NewBcrypt(int(a.config.GetInt("password.cost")), a.config.GetString("password.secret"))
+	a.clock = clock.New()
+	a.uuid = uid.NewUUID()
+	a.goroutine = goroutine.NewManager(100)
+	a.hash = hash.NewHMACSHA256(a.config.GetString("hash.secret"))
+	a.password = hash.NewBcrypt(int(a.config.GetInt("password.cost")), a.config.GetString("password.pepper"))
 
-	validator, err := pkgvalidator.NewV10Validator()
+	validator, err := validator.NewV10Validator()
 	if err != nil {
 		slog.Error("failed to init validation v10 validator", "error", err)
 		os.Exit(1)
 	}
+	a.validator = validator
 
-	snow, err := pkguid.NewSnowflake()
+	snow, err := uid.NewSnowflake()
 	if err != nil {
 		slog.Error("failed to init uid number snowflake", "error", err)
 		os.Exit(1)
 	}
+	a.uid = snow
 
-	a.totp = pkgotp.NewTOTP(
-		a.config.GetString("totp.issuer"),
-		uint(a.config.GetInt("totp.period")),
-		uint(a.config.GetInt("totp.skew")),
-		otp.DigitsSix,
+	objID, err := uid.NewObjectIDGenerator()
+	if err != nil {
+		slog.Error("failed to init uid string object_id", "error", err)
+		os.Exit(1)
+	}
+	a.oid = objID
+
+	a.totp = otp.NewTOTP(
+		a.config.GetString("mfa.totp.issuer"),
+		uint(a.config.GetInt("mfa.totp.period")),
+		uint(a.config.GetInt("mfa.totp.skew")),
+		libOTP.DigitsSix,
 	)
 
-	a.uid = snow
-	a.validator = validator
+	rawKey, err := base64.StdEncoding.DecodeString(a.config.GetString("mfa.secret"))
+	if err != nil {
+		slog.Error("failed to decode mfa secret", "error", err)
+		os.Exit(1)
+	}
+	if len(rawKey) != 32 {
+		slog.Error("failed to init mfacrypto, secret must be 32 bytes (AES-256)", "error", err)
+		os.Exit(1)
+	}
+	a.mfacry = mfacrypto.NewAESGCMEncryptor(mfacrypto.StaticKeyProvider{KeyBytes: rawKey})
 }
 
 func (a *App) initJWT() {
-	acToken, err := pkgjwt.NewHS512[pkgjwt.AccessTokenPayload](pkgjwt.Config{
-		Secret:   []byte(a.config.GetString("jwt.access.secret")),
-		Issuer:   "gobite",
-		Audience: "access",
-		TTL:      time.Duration(a.config.GetInt("jwt.access.ttl")) * time.Minute,
-		Clock:    a.clock,
-		UUID:     a.uuid,
+	defaultJWT, err := jwt.NewHS512(jwt.Config{
+		Secret:    []byte(a.config.GetString("jwt.secret")),
+		Issuer:    a.config.GetString("jwt.issuer"),
+		Audiences: a.config.GetArray("jwt.audiences"),
+		TTL:       time.Duration(a.config.GetInt("jwt.ttl")) * time.Minute,
+		Clock:     a.clock,
 	})
 	if err != nil {
-		slog.Error("failed to init jwt access token", "error", err)
+		slog.Error("failed to init jwt token", "error", err)
 		os.Exit(1)
 	}
 
-	refToken, err := pkgjwt.NewHS512[pkgjwt.RefreshTokenPayload](pkgjwt.Config{
-		Secret:   []byte(a.config.GetString("jwt.refresh.secret")),
-		Issuer:   "gobite",
-		Audience: "refresh",
-		TTL:      time.Duration(a.config.GetInt("jwt.refresh.ttl")) * 24 * time.Hour,
-		Clock:    a.clock,
-		UUID:     a.uuid,
-	})
-	if err != nil {
-		slog.Error("failed to init jwt refresh token", "error", err)
-		os.Exit(1)
-	}
-
-	tempToken, err := pkgjwt.NewHS512[map[string]any](pkgjwt.Config{
-		Secret:   []byte(a.config.GetString("jwt.temp.secret")),
-		Issuer:   "gobite",
-		Audience: "temp",
-		TTL:      time.Duration(a.config.GetInt("jwt.temp.ttl")) * time.Minute,
-		Clock:    a.clock,
-		UUID:     a.uuid,
-	})
-	if err != nil {
-		slog.Error("failed to init jwt temp token", "error", err)
-		os.Exit(1)
-	}
-
-	a.jwtTempToken = tempToken
-	a.jwtAccessToken = acToken
-	a.jwtRefreshToken = refToken
+	a.jwt = defaultJWT
 }
 
 func (a *App) initDatabase() {
@@ -154,7 +146,7 @@ func (a *App) initCache() {
 }
 
 func (a *App) initMail() {
-	mail, err := pkgmail.NewSMTP(pkgmail.SMTPConfig{
+	mail, err := mail.NewSMTP(mail.SMTPConfig{
 		Host:     a.config.GetString("mail.host"),
 		Port:     int(a.config.GetInt("mail.port")),
 		Username: a.config.GetString("mail.username"),
@@ -177,7 +169,7 @@ func (a *App) initMessaging() {
 	}
 
 	var (
-		client pkgmessaging.Messaging
+		client messaging.Messaging
 		err    error
 	)
 
@@ -235,7 +227,7 @@ func (a *App) initMessaging() {
 			os.Exit(1)
 		}
 
-		client, err = pkgmessaging.NewNSQ(pkgmessaging.NSQConfig{
+		client, err = messaging.NewNSQ(messaging.NSQConfig{
 			ProducerAddr:         a.config.GetString("messaging.nsq.producer_addr"),
 			ConsumerNSQDAddrs:    cNSQDAddrs,
 			ConsumerLookupdAddrs: cLookupdAddrs,
@@ -373,7 +365,7 @@ func (a *App) initMessaging() {
 			os.Exit(1)
 		}
 
-		client, err = pkgmessaging.NewKafka(pkgmessaging.KafkaConfig{
+		client, err = messaging.NewKafka(messaging.KafkaConfig{
 			Brokers: kafkaBrokers,
 			Dialer:  dialer,
 
@@ -421,7 +413,7 @@ func (a *App) initMessaging() {
 		}
 		opts = append(opts, nats.RetryOnFailedConnect(a.config.GetBool("messaging.nats.retry_on_failed_connect")))
 
-		client, err = pkgmessaging.NewNATS(pkgmessaging.NATSConfig{
+		client, err = messaging.NewNATS(messaging.NATSConfig{
 			URL:     a.config.GetString("messaging.nats.url"),
 			Options: opts,
 		})
@@ -446,7 +438,7 @@ func (a *App) initMessaging() {
 			_ = os.Setenv("PUBSUB_EMULATOR_HOST", v)
 		}
 
-		client, err = pkgmessaging.NewPubSub(a.ctx, pkgmessaging.PubSubConfig{
+		client, err = messaging.NewPubSub(a.ctx, messaging.PubSubConfig{
 			ProjectID:     a.config.GetString("messaging.pubsub.project_id"),
 			ClientOptions: opts,
 		})
@@ -464,11 +456,25 @@ func (a *App) initMessaging() {
 }
 
 func (a *App) initHTTPServer() {
-	a.router = pkgrouter.NewRouter(a.uuid, a.jwtAccessToken)
+	a.router = router.NewRouter(a.config, a.uuid, a.jwt)
+
+	corsHandler := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodPatch,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+	})
 
 	a.httpServer = &http.Server{
 		Addr:              a.config.GetString("server.address.http"),
-		Handler:           a.router,
+		Handler:           corsHandler.Handler(a.router),
 		ReadTimeout:       5 * time.Second,
 		ReadHeaderTimeout: 2 * time.Second,
 		WriteTimeout:      10 * time.Second,

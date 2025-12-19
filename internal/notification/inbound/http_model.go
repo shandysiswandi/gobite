@@ -3,18 +3,18 @@ package inbound
 import (
 	"time"
 
-	"github.com/shandysiswandi/gobite/internal/notification/entity"
+	"github.com/shandysiswandi/gobite/internal/pkg/valueobject"
 )
 
 type NotificationItemResponse struct {
-	ID                  int64          `json:"id"`
-	TriggerKey          string         `json:"trigger_key"`
-	Data                entity.JSONMap `json:"data"`
-	Metadata            entity.JSONMap `json:"metadata"`
-	ReadAt              *time.Time     `json:"read_at,omitempty"`
-	CreatedAt           time.Time      `json:"created_at"`
-	CategoryName        string         `json:"category_name"`
-	CategoryDescription string         `json:"category_description"`
+	ID                  int64               `json:"id"`
+	TriggerKey          string              `json:"trigger_key"`
+	Data                valueobject.JSONMap `json:"data"`
+	Metadata            valueobject.JSONMap `json:"metadata"`
+	ReadAt              *time.Time          `json:"read_at,omitempty"`
+	CreatedAt           time.Time           `json:"created_at"`
+	CategoryName        string              `json:"category_name"`
+	CategoryDescription string              `json:"category_description"`
 }
 
 type ListNotificationsResponse struct {

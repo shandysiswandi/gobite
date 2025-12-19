@@ -2,8 +2,11 @@ package usecase
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
 )
 
 type ProfileInput struct{}
@@ -17,10 +20,23 @@ type ProfileOutput struct {
 }
 
 func (s *Usecase) Profile(ctx context.Context, in ProfileInput) (*ProfileOutput, error) {
-	clm := pkgjwt.GetAuth[pkgjwt.AccessTokenPayload](ctx)
+	clm := jwt.GetAuth(ctx)
+	if clm == nil {
+		return nil, goerror.NewBusiness("authentication required", goerror.CodeUnauthorized)
+	}
 
-	user, err := s.getUserByID(ctx, clm.Payload().UserID)
+	userID := clm.GetString(keyPayloadUserEmail)
+	user, err := s.repoDB.GetUserByEmail(ctx, userID, false)
+	if errors.Is(err, goerror.ErrNotFound) {
+		slog.WarnContext(ctx, "user account not found", "user_id", userID)
+		return nil, goerror.NewBusiness("invalid email or password", goerror.CodeUnauthorized)
+	}
 	if err != nil {
+		slog.ErrorContext(ctx, "failed to repo get user by id", "user_id", userID, "error", err)
+		return nil, goerror.NewServer(err)
+	}
+
+	if err := s.ensureUserAllowedToLogin(ctx, user.ID, user.Status); err != nil {
 		return nil, err
 	}
 

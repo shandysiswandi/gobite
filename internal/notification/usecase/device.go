@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgjwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/jwt"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
 )
 
 func (s *Usecase) RegisterDevice(ctx context.Context, in RegisterDeviceInput) error {
@@ -14,14 +14,19 @@ func (s *Usecase) RegisterDevice(ctx context.Context, in RegisterDeviceInput) er
 	in.Platform = strings.ToLower(strings.TrimSpace(in.Platform))
 
 	if err := s.validator.Validate(in); err != nil {
-		return pkgerror.NewInvalidInput(err)
+		return goerror.NewInvalidInput(err)
 	}
 
-	clm := pkgjwt.GetAuth[pkgjwt.AccessTokenPayload](ctx)
+	clm := jwt.GetAuth(ctx)
+	if clm == nil {
+		return goerror.NewBusiness("authentication required", goerror.CodeUnauthorized)
+	}
 
-	if err := s.repoDB.NotificationUserDeviceRegister(ctx, clm.Payload().UserID, in.DeviceToken, in.Platform); err != nil {
-		slog.ErrorContext(ctx, "failed to repo register device token", "user_id", clm.Payload().UserID, "error", err)
-		return pkgerror.NewServer(err)
+	uid := clm.GetInt64(keyPayloadUserID)
+
+	if err := s.repoDB.NotificationUserDeviceRegister(ctx, uid, in.DeviceToken, in.Platform); err != nil {
+		slog.ErrorContext(ctx, "failed to repo register device token", "user_id", uid, "error", err)
+		return goerror.NewServer(err)
 	}
 
 	return nil
@@ -31,12 +36,12 @@ func (s *Usecase) RemoveDevice(ctx context.Context, in RemoveDeviceInput) error 
 	in.DeviceToken = strings.TrimSpace(in.DeviceToken)
 
 	if err := s.validator.Validate(in); err != nil {
-		return pkgerror.NewInvalidInput(err)
+		return goerror.NewInvalidInput(err)
 	}
 
 	if err := s.repoDB.NotificationUserDeviceRemove(ctx, in.DeviceToken); err != nil {
 		slog.ErrorContext(ctx, "failed to repo remove device token", "error", err)
-		return pkgerror.NewServer(err)
+		return goerror.NewServer(err)
 	}
 
 	return nil

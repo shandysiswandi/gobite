@@ -1,61 +1,87 @@
 version: "2"
+
 sql:
   - engine: "postgresql"
     queries: "database/queries"
     schema: "database/migrations"
+
     gen:
       go:
-        package: "pkgsql"
-        out: "internal/pkg/pkgsql"
+        package: "sqlc"
+        out: "internal/pkg/sqlc"
         sql_package: "pgx/v5"
+
         overrides:
-          # --- JSON Types ---
+          # Auths
+          - column: "auth_challenges.metadata"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
+              type: "JSONMap"
+
+          - column: "auth_refresh_tokens.metadata"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
+              type: "JSONMap"
+
+          - column: "auth_users.status"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/auth/entity"
+              package: "auth_entity"
+              type: "UserStatus"
+
+          - column: "auth_challenges.purpose"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/auth/entity"
+              package: "auth_entity"
+              type: "ChallengePurpose"
+
+          - column: "auth_mfa_factors.type"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/auth/entity"
+              package: "auth_entity"
+              type: "MFAType"
+
+          # Notifications
           - column: "notification_delivery_logs.provider_response"
             go_type:
-              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
-              package: "notif_entity"
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
               type: "JSONMap"
 
           - column: "notifications.data"
             go_type:
-              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
-              package: "notif_entity"
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
               type: "JSONMap"
 
           - column: "notifications.metadata"
             go_type:
-              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
-              package: "notif_entity"
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
               type: "JSONMap"
 
-          # --- Channel Types ---
           - column: "notification_user_settings.channel"
             go_type:
-              type: "Channel"
-              package: "notif_entity"
               import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "Channel"
 
           - column: "notification_templates.channel"
             go_type:
-              type: "Channel"
-              package: "notif_entity"
               import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "Channel"
 
           - column: "notification_delivery_logs.channel"
             go_type:
-              type: "Channel"
-              package: "notif_entity"
               import: "github.com/shandysiswandi/gobite/internal/notification/entity"
-
-          # --- Status Types ---
-          - column: "users.status"
-            go_type:
-              type: "UserStatus"
-              package: "auth_entity"
-              import: "github.com/shandysiswandi/gobite/internal/auth/entity"
+              package: "notif_entity"
+              type: "Channel"
 
           - column: "notification_delivery_logs.status"
             go_type:
-              type: "DeliveryStatus"
-              package: "notif_entity"
               import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "DeliveryStatus"

@@ -5,7 +5,7 @@
 - Core wiring: `internal/app` handles configuration, dependency injection, server start/stop, and module registration.
 - Auth domain: `internal/auth` contains inbound HTTP handlers (`inbound`), use cases (`usecase` + `domain`), and persistence/cache adapters (`outbound`).
 - Shared utilities: `internal/pkg` holds cross-cutting helpers (config, JWT, logging, router middlewares, validation, OTP, UID, etc.).
-- Data layer: SQL migrations live in `database/migrations`; sqlc inputs in `database/queries`; generated Go models/queries in `internal/pkg/pkgsql`.
+- Data layer: SQL migrations live in `database/migrations`; sqlc inputs in `database/queries`; generated Go models/queries in `internal/pkg/sqlc`.
 - Configuration: sample at `config/config.example.yaml`; runtime config resolved from `/config/config.yaml` in containers or `./config/config.yaml` when `LOCAL=true`.
 
 ## Build, Test, and Development Commands
@@ -14,7 +14,7 @@
 
 ## Coding Style & Naming Conventions
 - Go 1.25+ idioms; keep code `gofmt`-clean and `golangci-lint`-clean before pushing.
-- Package names are lowercase, short, and domain-driven (`auth`, `pkgjwt`, `pkgrouter`); files use snake_case when helpful.
+- Package names are lowercase, short, and domain-driven (`auth`, `jwt`, `router`); files use snake_case when helpful.
 - Favor `context.Context` threading and `slog` for logging; keep handlers thin and business logic in use cases.
 - Validate inputs with the shared validator and reuse helpers from `internal/pkg` instead of duplicating logic.
 

@@ -9,12 +9,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/shandysiswandi/gobite/internal/notification/entity"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgerror"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgsql"
+	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
+	"github.com/shandysiswandi/gobite/internal/pkg/sqlc"
+	"github.com/shandysiswandi/gobite/internal/pkg/valueobject"
 )
 
 func (s *SQL) NotificationCreate(ctx context.Context, n entity.NotificationCreate) error {
-	return s.query.NotificationCreate(ctx, pkgsql.NotificationCreateParams{
+	return s.query.NotificationCreate(ctx, sqlc.NotificationCreateParams{
 		ID:         n.ID,
 		UserID:     n.UserID,
 		CategoryID: n.CategoryID,
@@ -37,7 +38,7 @@ func (s *SQL) NotificationCreateWithDeliveryLog(ctx context.Context, n entity.No
 
 	qtx := s.query.WithTx(tx)
 
-	if err := qtx.NotificationCreate(ctx, pkgsql.NotificationCreateParams{
+	if err := qtx.NotificationCreate(ctx, sqlc.NotificationCreateParams{
 		ID:         n.ID,
 		UserID:     n.UserID,
 		CategoryID: n.CategoryID,
@@ -48,7 +49,7 @@ func (s *SQL) NotificationCreateWithDeliveryLog(ctx context.Context, n entity.No
 		return 0, err
 	}
 
-	logID, err = qtx.NotificationDeliveryLogCreate(ctx, pkgsql.NotificationDeliveryLogCreateParams{
+	logID, err = qtx.NotificationDeliveryLogCreate(ctx, sqlc.NotificationDeliveryLogCreateParams{
 		NotificationID: log.NotificationID,
 		Channel:        log.Channel,
 		Status:         log.Status,
@@ -65,7 +66,7 @@ func (s *SQL) NotificationCreateWithDeliveryLog(ctx context.Context, n entity.No
 }
 
 func (s *SQL) NotificationGetUserNotificationPaginate(ctx context.Context, userID int64, limit, offset int32) ([]entity.UserNotificationItem, error) {
-	rows, err := s.query.NotificationGetUserNotificationPaginate(ctx, pkgsql.NotificationGetUserNotificationPaginateParams{
+	rows, err := s.query.NotificationGetUserNotificationPaginate(ctx, sqlc.NotificationGetUserNotificationPaginateParams{
 		Limit:  limit,
 		Offset: offset,
 		UserID: userID,
@@ -105,7 +106,7 @@ func (s *SQL) NotificationCountUnread(ctx context.Context, userID int64) (int64,
 }
 
 func (s *SQL) NotificationMarkRead(ctx context.Context, userID, notificationID int64) error {
-	return s.query.NotificationMarkRead(ctx, pkgsql.NotificationMarkReadParams{
+	return s.query.NotificationMarkRead(ctx, sqlc.NotificationMarkReadParams{
 		ID:     notificationID,
 		UserID: userID,
 	})
@@ -116,19 +117,19 @@ func (s *SQL) NotificationsMarkAllRead(ctx context.Context, userID int64) error 
 }
 
 func (s *SQL) NotificationSoftDelete(ctx context.Context, userID, notificationID int64) error {
-	return s.query.NotificationSoftDelete(ctx, pkgsql.NotificationSoftDeleteParams{
+	return s.query.NotificationSoftDelete(ctx, sqlc.NotificationSoftDeleteParams{
 		ID:     notificationID,
 		UserID: userID,
 	})
 }
 
 func (s *SQL) NotificationTemplateGetByTrigger(ctx context.Context, triggerKey string, channel entity.Channel) (*entity.Template, error) {
-	row, err := s.query.NotificationTemplateGetByTrigger(ctx, pkgsql.NotificationTemplateGetByTriggerParams{
+	row, err := s.query.NotificationTemplateGetByTrigger(ctx, sqlc.NotificationTemplateGetByTriggerParams{
 		TriggerKey: triggerKey,
 		Channel:    channel,
 	})
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, pkgerror.ErrNotFound
+		return nil, goerror.ErrNotFound
 	}
 	if err != nil {
 		return nil, err
@@ -144,13 +145,13 @@ func (s *SQL) NotificationTemplateGetByTrigger(ctx context.Context, triggerKey s
 	}, nil
 }
 
-func (s *SQL) NotificationDeliveryLogUpdateStatus(ctx context.Context, id int64, status entity.DeliveryStatus, providerResponse entity.JSONMap, nextRetryAt *time.Time) error {
+func (s *SQL) NotificationDeliveryLogUpdateStatus(ctx context.Context, id int64, status entity.DeliveryStatus, providerResponse valueobject.JSONMap, nextRetryAt *time.Time) error {
 	var next pgtype.Timestamptz
 	if nextRetryAt != nil {
 		next = pgtype.Timestamptz{Time: *nextRetryAt, Valid: true}
 	}
 
-	return s.query.NotificationDeliveryLogUpdateStatus(ctx, pkgsql.NotificationDeliveryLogUpdateStatusParams{
+	return s.query.NotificationDeliveryLogUpdateStatus(ctx, sqlc.NotificationDeliveryLogUpdateStatusParams{
 		ID:               id,
 		Status:           status,
 		ProviderResponse: providerResponse,
@@ -159,7 +160,7 @@ func (s *SQL) NotificationDeliveryLogUpdateStatus(ctx context.Context, id int64,
 }
 
 func (s *SQL) NotificationUserDeviceRegister(ctx context.Context, userID int64, deviceToken, platform string) error {
-	return s.query.NotificationUserDeviceRegister(ctx, pkgsql.NotificationUserDeviceRegisterParams{
+	return s.query.NotificationUserDeviceRegister(ctx, sqlc.NotificationUserDeviceRegisterParams{
 		UserID:      userID,
 		DeviceToken: deviceToken,
 		Platform:    platform,

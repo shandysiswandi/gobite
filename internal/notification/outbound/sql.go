@@ -2,17 +2,17 @@ package outbound
 
 import (
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/shandysiswandi/gobite/internal/pkg/pkgsql"
+	"github.com/shandysiswandi/gobite/internal/pkg/sqlc"
 )
 
 type SQL struct {
 	conn  *pgxpool.Pool
-	query *pkgsql.Queries
+	query *sqlc.Queries
 }
 
 func NewSQL(conn *pgxpool.Pool) *SQL {
 	return &SQL{
 		conn:  conn,
-		query: pkgsql.New(conn),
+		query: sqlc.New(conn),
 	}
 }
