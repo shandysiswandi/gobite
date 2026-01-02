@@ -1,0 +1,241 @@
+services:
+  # ===== ===== =====
+  # Database
+  # ===== ===== =====
+  postgres:
+    image: postgres:17-alpine
+    pull_policy: missing
+    shm_size: 128mb
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres_gobite_data:/var/lib/postgresql/data
+    networks:
+      - gobite-network
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_USER: ${POSTGRES_USER:-user}
+      POSTGRES_DB: ${POSTGRES_DB:-gobite}
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready --username=${POSTGRES_USER:-user} --dbname=${POSTGRES_DB:-gobite}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:8.2-alpine
+    pull_policy: missing
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6379:6379"
+    volumes:
+      - redis_gobite_data:/data
+    networks:
+      - gobite-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===== ===== =====
+  # Mailer
+  # ===== ===== =====
+  mailer:
+    image: axllent/mailpit:v1.28.0
+    pull_policy: missing
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:1025:1025" # SMTP server
+      - "127.0.0.1:8025:8025" # Web UI
+    networks:
+      - gobite-network
+
+  # ===== ===== =====
+  # Storage
+  # ===== ===== =====
+  minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    pull_policy: missing
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    ports:
+      - "127.0.0.1:9000:9000" # API Server
+      - "127.0.0.1:9001:9001" # Web UI
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-user}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
+    volumes:
+      - minio_gobite_data:/data
+    networks:
+      - gobite-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===== ===== =====
+  # Messaging Broker
+  # ===== ===== =====
+  nsqlookupd:
+    image: nsqio/nsq:v1.3.0
+    pull_policy: missing
+    restart: unless-stopped
+    command: /nsqlookupd
+    ports:
+      - "127.0.0.1:4160:4160" # TCP
+      - "127.0.0.1:4161:4161" # HTTP
+    networks:
+      - gobite-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4161/ping | grep -q OK"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  nsqd:
+    image: nsqio/nsq:v1.3.0
+    pull_policy: missing
+    restart: unless-stopped
+    command: >
+      /nsqd
+      --lookupd-tcp-address=nsqlookupd:4160
+      --broadcast-address=127.0.0.1
+      --data-path=/data
+    ports:
+      - "127.0.0.1:4150:4150" # TCP
+      - "127.0.0.1:4151:4151" # HTTP
+    volumes:
+      - nsq_gobite_data:/data
+    depends_on:
+      nsqlookupd:
+        condition: service_healthy
+    networks:
+      - gobite-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4151/ping | grep -q OK"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  nats:
+    image: nats:2.12.3-alpine
+    pull_policy: missing
+    restart: unless-stopped
+    command: ["-js", "-m", "8222", "--store_dir", "/data"]
+    ports:
+      - "127.0.0.1:4222:4222"
+      - "127.0.0.1:8222:8222" # Monitoring endpoints
+    volumes:
+      - nats_gobite_data:/data
+    networks:
+      - gobite-network
+    healthcheck:
+      test:
+        ["CMD-SHELL", "wget -qO- http://localhost:8222/healthz | grep -q ok"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ===== ===== =====
+  # Observability (optional profile)
+  # ===== ===== =====
+  tempo:
+    image: grafana/tempo:2.9.0
+    pull_policy: missing
+    restart: unless-stopped
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./deploy/tempo.yaml:/etc/tempo.yaml
+    networks:
+      - gobite-network
+
+  prometheus:
+    image: prom/prometheus:v3.8.1
+    pull_policy: missing
+    restart: unless-stopped
+    command: ["--config.file=/etc/prometheus.yaml"]
+    volumes:
+      - ./deploy/prometheus.yaml:/etc/prometheus.yaml
+    networks:
+      - gobite-network
+
+  loki:
+    image: grafana/loki:3.6.3
+    pull_policy: missing
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./deploy/loki.yaml:/etc/loki/loki.yaml
+      - loki_gobite_data:/loki
+    networks:
+      - gobite-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.142.0
+    pull_policy: missing
+    restart: unless-stopped
+    command: ["--config=/etc/otel-collector.yaml"]
+    volumes:
+      - ./deploy/otel-collector.yaml:/etc/otel-collector.yaml
+    ports:
+      - "127.0.0.1:4317:4317" # OTLP gRPC for host app
+      - "127.0.0.1:4318:4318" # OTLP HTTP for host app
+    networks:
+      - gobite-network
+    depends_on:
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:12.3.1
+    pull_policy: missing
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-user}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-password}
+    volumes:
+      - ./deploy/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - grafana_gobite_data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000" # Grafana UI
+    networks:
+      - gobite-network
+    depends_on:
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_started
+
+volumes:
+  postgres_gobite_data:
+  redis_gobite_data:
+  nsq_gobite_data:
+  minio_gobite_data:
+  nats_gobite_data:
+  loki_gobite_data:
+  grafana_gobite_data:
+
+networks:
+  gobite-network:
+    driver: bridge
