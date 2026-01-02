@@ -1,0 +1,208 @@
+services:
+  # ===== ===== =====
+  # Database
+  # ===== ===== =====
+  postgres:
+    image: postgres:17-alpine
+    pull_policy: missing
+    shm_size: 128mb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_gobite_data:/var/lib/postgresql/data
+    networks:
+      - gobite-network
+    environment:
+      POSTGRES_PASSWORD: password
+      POSTGRES_USER: user
+      POSTGRES_DB: gobite
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready --username=user --dbname=gobite"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:8.2-alpine
+    pull_policy: missing
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_gobite_data:/data
+    networks:
+      - gobite-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # ===== ===== =====
+  # Mailer
+  # ===== ===== =====
+  mailer:
+    image: axllent/mailpit:v1.28.0 # mailhog/mailhog:v1.0.1
+    pull_policy: missing
+    ports:
+      - "1025:1025" # SMTP server
+      - "8025:8025" # Web UI
+    networks:
+      - gobite-network
+
+  # ===== ===== =====
+  # Storage
+  # ===== ===== =====
+  minio:
+    image: minio/minio:latest
+    pull_policy: missing
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000" # API Server
+      - "9001:9001" # Web UI
+    environment:
+      MINIO_ROOT_USER: user
+      MINIO_ROOT_PASSWORD: password
+    volumes:
+      - minio_gobite_data:/data
+    networks:
+      - gobite-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s # Optional: give MinIO time to start up before checking
+
+  # ===== ===== =====
+  # Messaging Broker
+  # ===== ===== =====
+  nsqlookupd:
+    image: nsqio/nsq:v1.3.0
+    pull_policy: missing
+    command: /nsqlookupd
+    ports:
+      - "4160:4160" # TCP
+      - "4161:4161" # HTTP
+    networks:
+      - gobite-network
+
+  nsqd:
+    image: nsqio/nsq:v1.3.0
+    pull_policy: missing
+    command: >
+      /nsqd
+      --lookupd-tcp-address=nsqlookupd:4160
+      --broadcast-address=localhost
+      --data-path=/data
+    ports:
+      - "4150:4150" # TCP
+      - "4151:4151" # HTTP
+    volumes:
+      - nsq_gobite_data:/data
+    depends_on:
+      nsqlookupd:
+        condition: service_started
+    networks:
+      - gobite-network
+
+  nats:
+    image: nats:2.12.3-alpine
+    pull_policy: missing
+    command: ["-js"]
+    ports:
+      - "4222:4222"
+      - "8222:8222" # For monitoring endpoints
+    volumes:
+      - nats_gobite_data:/data
+    networks:
+      - gobite-network
+
+  # ===== ===== =====
+  # Observability
+  # ===== ===== =====
+  tempo:
+    image: grafana/tempo:2.9.0
+    pull_policy: missing
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes:
+      - ./deploy/tempo.yaml:/etc/tempo.yaml
+    ports:
+      - "3200:3200" # Tempo query
+    networks:
+      - gobite-network
+
+  prometheus:
+    image: prom/prometheus:v3.8.1
+    pull_policy: missing
+    command: ["--config.file=/etc/prometheus.yaml"]
+    volumes:
+      - ./deploy/prometheus.yaml:/etc/prometheus.yaml
+    ports:
+      - "9090:9090" # Prometheus query
+    networks:
+      - gobite-network
+
+  loki:
+    image: grafana/loki:3.6.3
+    pull_policy: missing
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./deploy/loki.yaml:/etc/loki/loki.yaml
+      - loki_gobite_data:/loki
+    ports:
+      - "3100:3100" # Loki query
+    networks:
+      - gobite-network
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.142.0
+    pull_policy: missing
+    command: ["--config=/etc/otel-collector.yaml"]
+    volumes:
+      - ./deploy/otel-collector.yaml:/etc/otel-collector.yaml
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+    networks:
+      - gobite-network
+    depends_on:
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:12.3.1
+    pull_policy: missing
+    environment:
+      GF_SECURITY_ADMIN_USER: user
+      GF_SECURITY_ADMIN_PASSWORD: password
+    volumes:
+      - ./deploy/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    ports:
+      - "3000:3000" # Web UI
+    networks:
+      - gobite-network
+    depends_on:
+      loki:
+        condition: service_started
+      tempo:
+        condition: service_started
+      prometheus:
+        condition: service_started
+
+volumes:
+  postgres_gobite_data:
+  redis_gobite_data:
+  nsq_gobite_data:
+  minio_gobite_data:
+  nats_gobite_data:
+  loki_gobite_data:
+
+networks:
+  gobite-network:
+    driver: bridge

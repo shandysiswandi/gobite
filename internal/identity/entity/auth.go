@@ -1,0 +1,115 @@
+package entity
+
+import (
+	"time"
+
+	"github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+)
+
+type User struct {
+	ID        int64
+	Email     string
+	FullName  string
+	AvatarURL string
+	Status    UserStatus
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+type MFAFactor struct {
+	ID           int64
+	UserID       int64
+	Type         MFAType
+	FriendlyName string
+	Secret       []byte
+	KeyVersion   int16 // key rotation version
+	IsVerified   bool
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+type UserCredential struct {
+	UserID    int64
+	Password  string // hashed
+	UpdatedAt time.Time
+}
+
+type Challenge struct {
+	ID        int64
+	UserID    int64
+	Token     string
+	Purpose   ChallengePurpose
+	ExpiresAt time.Time
+	Metadata  valueobject.JSONMap
+	CreatedAt time.Time
+}
+
+type MFABackupCode struct {
+	ID     int64
+	UserID int64
+	Code   string
+}
+
+// ---- //
+
+type RefreshToken struct {
+	ID                int64
+	UserID            int64
+	Token             string
+	ExpiresAt         time.Time
+	Revoked           bool
+	ReplacedByTokenID int64
+	Metadata          valueobject.JSONMap
+	CreatedAt         time.Time
+}
+
+type ChallengeUser struct {
+	ChallengeID       int64
+	ChallengePurpose  ChallengePurpose
+	ChallengeToken    string
+	ChallengeMetadata valueobject.JSONMap
+	UserID            int64
+	UserEmail         string
+	UserStatus        UserStatus
+}
+
+type UserLoginInfo struct {
+	ID       int64
+	Email    string
+	Status   UserStatus
+	Password string
+	HasMFA   bool
+}
+
+type UserCredentialInfo struct {
+	ID       int64
+	Email    string
+	Status   UserStatus
+	Password string
+}
+
+type RotateRefreshToken struct {
+	NewID        int64
+	OldID        int64
+	UserID       int64
+	NewToken     string
+	NewExpiresAt time.Time
+}
+
+type UserRefreshToken struct {
+	UserID                   int64
+	UserEmail                string
+	UserStatus               UserStatus
+	RefreshID                int64
+	RefreshToken             string
+	RefreshRevoked           bool
+	RefreshReplacedByTokenID *int64
+	RefreshExpiresAt         time.Time
+}
+
+type VerifyUserRegistration struct {
+	ChallengeID   int64
+	UserID        int64
+	OldUserStatus UserStatus
+	NewUserStatus UserStatus
+}

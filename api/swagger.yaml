@@ -1,0 +1,1674 @@
+basePath: /
+definitions:
+  inbound.BackupCodeRotateRequest:
+    properties:
+      current_password:
+        type: string
+    type: object
+  inbound.BackupCodeRotateResponse:
+    properties:
+      recovery_codes:
+        items:
+          type: string
+        type: array
+    type: object
+  inbound.EmailVerifyRequest:
+    properties:
+      challenge_token:
+        type: string
+    type: object
+  inbound.EnforceRequest:
+    properties:
+      act:
+        type: string
+      obj:
+        type: string
+      sub:
+        type: string
+    type: object
+  inbound.EnforceResponse:
+    properties:
+      allowed:
+        type: boolean
+    type: object
+  inbound.GroupingPoliciesRequest:
+    properties:
+      policies:
+        items:
+          $ref: '#/definitions/inbound.GroupingPolicyRequest'
+        type: array
+      policy:
+        $ref: '#/definitions/inbound.GroupingPolicyRequest'
+    type: object
+  inbound.GroupingPoliciesResponse:
+    properties:
+      policies:
+        items:
+          $ref: '#/definitions/inbound.GroupingPolicyResponse'
+        type: array
+    type: object
+  inbound.GroupingPolicyRequest:
+    properties:
+      role:
+        type: string
+      user:
+        type: string
+    type: object
+  inbound.GroupingPolicyResponse:
+    properties:
+      role:
+        type: string
+      user:
+        type: string
+    type: object
+  inbound.Login2FARequest:
+    properties:
+      challenge_token:
+        type: string
+      code:
+        type: string
+      method:
+        type: string
+    type: object
+  inbound.Login2FAResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  inbound.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  inbound.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      available_methods:
+        items:
+          type: string
+        type: array
+      challenge_token:
+        type: string
+      mfa_required:
+        type: boolean
+      refresh_token:
+        type: string
+    type: object
+  inbound.LogoutRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  inbound.MutationResponse:
+    type: object
+  inbound.NotificationCategoriesResponse:
+    properties:
+      categories:
+        items:
+          $ref: '#/definitions/inbound.NotificationCategoryResponse'
+        type: array
+    type: object
+  inbound.NotificationCategoryResponse:
+    properties:
+      description:
+        type: string
+      id:
+        type: integer
+      is_mandatory:
+        type: boolean
+      name:
+        type: string
+    type: object
+  inbound.NotificationResponse:
+    properties:
+      category_id:
+        type: integer
+      created_at:
+        type: string
+      data:
+        $ref: '#/definitions/valueobject.JSONMap'
+      id:
+        type: integer
+      metadata:
+        $ref: '#/definitions/valueobject.JSONMap'
+      read_at:
+        type: string
+      trigger_key:
+        type: string
+    type: object
+  inbound.NotificationSettingRequest:
+    properties:
+      category_id:
+        type: integer
+      channel:
+        type: string
+      is_enabled:
+        type: boolean
+    type: object
+  inbound.NotificationSettingResponse:
+    properties:
+      category_id:
+        type: integer
+      channel:
+        type: string
+      is_enabled:
+        type: boolean
+    type: object
+  inbound.NotificationSettingsResponse:
+    properties:
+      settings:
+        items:
+          $ref: '#/definitions/inbound.NotificationSettingResponse'
+        type: array
+    type: object
+  inbound.NotificationSettingsUpdateRequest:
+    properties:
+      settings:
+        items:
+          $ref: '#/definitions/inbound.NotificationSettingRequest'
+        type: array
+    type: object
+  inbound.NotificationsResponse:
+    properties:
+      notifications:
+        items:
+          $ref: '#/definitions/inbound.NotificationResponse'
+        type: array
+    type: object
+  inbound.PasswordChangeRequest:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    type: object
+  inbound.PasswordForgotRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  inbound.PasswordResetRequest:
+    properties:
+      challenge_token:
+        type: string
+      new_password:
+        type: string
+    type: object
+  inbound.PermissionResponse:
+    properties:
+      act:
+        type: string
+      obj:
+        type: string
+      sub:
+        type: string
+    type: object
+  inbound.PoliciesRequest:
+    properties:
+      policies:
+        items:
+          $ref: '#/definitions/inbound.PolicyRequest'
+        type: array
+      policy:
+        $ref: '#/definitions/inbound.PolicyRequest'
+    type: object
+  inbound.PoliciesResponse:
+    properties:
+      policies:
+        items:
+          $ref: '#/definitions/inbound.PolicyResponse'
+        type: array
+    type: object
+  inbound.PolicyRequest:
+    properties:
+      act:
+        type: string
+      obj:
+        type: string
+      sub:
+        type: string
+    type: object
+  inbound.PolicyResponse:
+    properties:
+      act:
+        type: string
+      obj:
+        type: string
+      sub:
+        type: string
+    type: object
+  inbound.ProfileResponse:
+    properties:
+      avatar_url:
+        type: string
+      email:
+        type: string
+      full_name:
+        type: string
+      id:
+        type: integer
+      status:
+        type: string
+    type: object
+  inbound.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    type: object
+  inbound.RefreshTokenResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
+  inbound.RegisterDeviceRequest:
+    properties:
+      device_token:
+        type: string
+      platform:
+        type: string
+    type: object
+  inbound.RegisterRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        type: string
+      password:
+        type: string
+    type: object
+  inbound.RegisterResendRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  inbound.RegisterResendResponse:
+    type: object
+  inbound.RemoveDeviceRequest:
+    properties:
+      device_token:
+        type: string
+    type: object
+  inbound.RolePermissionsResponse:
+    properties:
+      permissions:
+        items:
+          $ref: '#/definitions/inbound.PermissionResponse'
+        type: array
+      role:
+        type: string
+    type: object
+  inbound.RoleUsersResponse:
+    properties:
+      role:
+        type: string
+      users:
+        items:
+          type: string
+        type: array
+    type: object
+  inbound.RolesResponse:
+    properties:
+      roles:
+        items:
+          type: string
+        type: array
+    type: object
+  inbound.TOTPConfirmRequest:
+    properties:
+      challenge_token:
+        type: string
+      code:
+        type: string
+    type: object
+  inbound.TOTPSetupRequest:
+    properties:
+      current_password:
+        type: string
+      friendly_name:
+        type: string
+    type: object
+  inbound.TOTPSetupResponse:
+    properties:
+      challenge_token:
+        type: string
+      key:
+        type: string
+      uri:
+        type: string
+    type: object
+  inbound.UpdateProfileRequest:
+    properties:
+      full_name:
+        type: string
+    type: object
+  inbound.UserPermissionsResponse:
+    properties:
+      permissions:
+        items:
+          $ref: '#/definitions/inbound.PermissionResponse'
+        type: array
+      user:
+        type: string
+    type: object
+  inbound.UserRolesResponse:
+    properties:
+      roles:
+        items:
+          type: string
+        type: array
+      user:
+        type: string
+    type: object
+  router.errorResponse:
+    properties:
+      error:
+        additionalProperties:
+          type: string
+        type: object
+      message:
+        example: example string message
+        type: string
+    type: object
+  router.successResponse:
+    properties:
+      data: {}
+      message:
+        example: example string message
+        type: string
+      meta:
+        additionalProperties: {}
+        type: object
+    type: object
+  valueobject.JSONMap:
+    additionalProperties: {}
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@gobite.com
+    name: Gobite API Support
+    url: https://gobite.com/contact
+  description: Gobite provides authentication and profile management APIs.
+  license:
+    name: MIT
+    url: https://mit-license.org/
+  termsOfService: https://gobite.com/terms
+  title: Gobite API
+  version: "1.0"
+paths:
+  /api/v1/iam/enforce:
+    post:
+      consumes:
+      - application/json
+      description: Evaluates a policy for the given subject, object, and action.
+      parameters:
+      - description: Enforcement payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.EnforceRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Enforcement result
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.EnforceResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Enforce policy
+      tags:
+      - IAM
+  /api/v1/iam/grouping-policies:
+    delete:
+      consumes:
+      - application/json
+      description: Removes grouping policies in single or batch format.
+      parameters:
+      - description: Grouping policies payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.GroupingPoliciesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Grouping policies removed
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.MutationResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Remove grouping policies
+      tags:
+      - IAM
+    get:
+      description: Returns all grouping policies in the enforcer.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Grouping policy list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.GroupingPoliciesResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List grouping policies
+      tags:
+      - IAM
+    post:
+      consumes:
+      - application/json
+      description: Adds grouping policies in single or batch format.
+      parameters:
+      - description: Grouping policies payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.GroupingPoliciesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Grouping policies added
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.MutationResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Add grouping policies
+      tags:
+      - IAM
+  /api/v1/iam/policies:
+    delete:
+      consumes:
+      - application/json
+      description: Removes policy rules in single or batch format.
+      parameters:
+      - description: Policies payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.PoliciesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Policies removed
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.MutationResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Remove policies
+      tags:
+      - IAM
+    get:
+      description: Returns all policy rules in the enforcer.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Policy list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.PoliciesResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List policies
+      tags:
+      - IAM
+    post:
+      consumes:
+      - application/json
+      description: Adds policy rules in single or batch format.
+      parameters:
+      - description: Policies payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.PoliciesRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Policies added
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.MutationResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Add policies
+      tags:
+      - IAM
+  /api/v1/iam/roles:
+    get:
+      description: Returns all roles in the enforcer.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.RolesResponse'
+              type: object
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List roles
+      tags:
+      - IAM
+  /api/v1/iam/roles/{role}/permissions:
+    get:
+      description: Returns permissions granted to a role.
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role permissions list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.RolePermissionsResponse'
+              type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List role permissions
+      tags:
+      - IAM
+  /api/v1/iam/roles/{role}/users:
+    get:
+      description: Returns all users assigned to a role.
+      parameters:
+      - description: Role name
+        in: path
+        name: role
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role users list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.RoleUsersResponse'
+              type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List role users
+      tags:
+      - IAM
+  /api/v1/iam/users/{user}/permissions:
+    get:
+      description: Returns permissions granted to a user (implicit).
+      parameters:
+      - description: User identifier
+        in: path
+        name: user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User permissions list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.UserPermissionsResponse'
+              type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List user permissions
+      tags:
+      - IAM
+  /api/v1/iam/users/{user}/roles:
+    get:
+      description: Returns all roles assigned to a user.
+      parameters:
+      - description: User identifier
+        in: path
+        name: user
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User roles list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.UserRolesResponse'
+              type: object
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List user roles
+      tags:
+      - IAM
+  /api/v1/identity/login:
+    post:
+      consumes:
+      - application/json
+      description: Validates credentials and returns access/refresh tokens. If MFA
+        is required, a challenge ID is returned.
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authentication result
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.LoginResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Invalid credentials
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Authenticate user
+      tags:
+      - Identity
+  /api/v1/identity/login/2fa:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the 2FA code for a login challenge and returns access/refresh
+        tokens.
+      parameters:
+      - description: 2FA login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.Login2FARequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authentication result
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.Login2FAResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Invalid MFA code
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Complete 2FA login
+      tags:
+      - Identity
+  /api/v1/identity/logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalidates the provided refresh token.
+      parameters:
+      - description: Logout payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.LogoutRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Logout
+      tags:
+      - Identity
+  /api/v1/identity/logout-all:
+    post:
+      description: Invalidates all refresh tokens for the authenticated user.
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Logout all sessions
+      tags:
+      - Identity
+  /api/v1/identity/mfa/backup_code/rotate:
+    post:
+      consumes:
+      - application/json
+      description: Generates a new set of recovery codes for the authenticated user.
+      parameters:
+      - description: Backup code rotation payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.BackupCodeRotateRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Backup codes rotated
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.BackupCodeRotateResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Rotate backup codes
+      tags:
+      - Identity
+  /api/v1/identity/mfa/totp/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Verifies the TOTP code and activates the MFA factor.
+      parameters:
+      - description: TOTP confirmation payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.TOTPConfirmRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "404":
+          description: MFA factor not found
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Confirm TOTP
+      tags:
+      - Identity
+  /api/v1/identity/mfa/totp/setup:
+    post:
+      consumes:
+      - application/json
+      description: Creates a TOTP factor and returns the shared secret and otpauth
+        URI.
+      parameters:
+      - description: TOTP setup payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.TOTPSetupRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: TOTP setup result
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.TOTPSetupResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Setup TOTP
+      tags:
+      - Identity
+  /api/v1/identity/password/change:
+    post:
+      consumes:
+      - application/json
+      description: Updates the user's password after validating the current password.
+      parameters:
+      - description: Change password payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.PasswordChangeRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Change password
+      tags:
+      - Identity
+  /api/v1/identity/password/forgot:
+    post:
+      consumes:
+      - application/json
+      description: Sends password reset instructions to the provided email address.
+      parameters:
+      - description: Forgot password payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.PasswordForgotRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Request password reset
+      tags:
+      - Identity
+  /api/v1/identity/password/reset:
+    post:
+      consumes:
+      - application/json
+      description: Sets a new password using the provided reset token.
+      parameters:
+      - description: Reset password payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.PasswordResetRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "404":
+          description: Reset token not found
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Reset password
+      tags:
+      - Identity
+  /api/v1/identity/profile:
+    get:
+      description: Returns profile information for the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile result
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.ProfileResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Get profile
+      tags:
+      - Identity
+    put:
+      consumes:
+      - application/json
+      description: Updates profile details for the authenticated user.
+      parameters:
+      - description: Profile update payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.UpdateProfileRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Update profile
+      tags:
+      - Identity
+  /api/v1/identity/profile/avatar:
+    put:
+      consumes:
+      - multipart/form-data
+      description: Updates avatar for the authenticated user.
+      parameters:
+      - description: Avatar image
+        in: formData
+        name: avatar
+        required: true
+        type: file
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Update profile avatar
+      tags:
+      - Identity
+  /api/v1/identity/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Exchanges a refresh token for a new access/refresh token pair.
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refresh result
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.RefreshTokenResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Invalid refresh token
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Refresh access token
+      tags:
+      - Identity
+  /api/v1/identity/register:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new account and sends a verification email.
+      parameters:
+      - description: Registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.RegisterRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "409":
+          description: Email already registered
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Register user
+      tags:
+      - Identity
+  /api/v1/identity/register/resend:
+    post:
+      consumes:
+      - application/json
+      description: Sends a new verification email when an account exists for the provided
+        address.
+      parameters:
+      - description: Resend verification payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.RegisterResendRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Resend result
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.RegisterResendResponse'
+              type: object
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Resend verification email
+      tags:
+      - Identity
+  /api/v1/identity/register/verify:
+    post:
+      consumes:
+      - application/json
+      description: Confirms the user's email address using the provided verification
+        token.
+      parameters:
+      - description: Email verification payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.EmailVerifyRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "404":
+          description: Verification token not found
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Verify email
+      tags:
+      - Identity
+  /api/v1/notification/categories:
+    get:
+      description: Returns all notification categories.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Category list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.NotificationCategoriesResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List notification categories
+      tags:
+      - Notification
+  /api/v1/notification/device:
+    delete:
+      consumes:
+      - application/json
+      description: Removes a device token for the authenticated user.
+      parameters:
+      - description: Device removal payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.RemoveDeviceRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Remove device
+      tags:
+      - Notification
+    post:
+      consumes:
+      - application/json
+      description: Registers a device token for the authenticated user.
+      parameters:
+      - description: Device registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.RegisterDeviceRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Register device
+      tags:
+      - Notification
+  /api/v1/notification/settings:
+    get:
+      description: Returns notification settings for the authenticated user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Settings list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.NotificationSettingsResponse'
+              type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List notification settings
+      tags:
+      - Notification
+    put:
+      consumes:
+      - application/json
+      description: Updates notification settings for the authenticated user.
+      parameters:
+      - description: Settings payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/inbound.NotificationSettingsUpdateRequest'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Update notification settings
+      tags:
+      - Notification
+  /api/v1/notifications:
+    get:
+      description: Returns notifications for the authenticated user.
+      parameters:
+      - description: Filter by status (all|read|unread)
+        in: query
+        name: status
+        type: string
+      - description: Pagination limit
+        in: query
+        name: limit
+        type: integer
+      - description: Pagination offset
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Notification list
+          schema:
+            allOf:
+            - $ref: '#/definitions/router.successResponse'
+            - properties:
+                data:
+                  $ref: '#/definitions/inbound.NotificationsResponse'
+              type: object
+        "400":
+          description: Invalid query parameters
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: List notifications
+      tags:
+      - Notification
+  /api/v1/notifications/{id}:
+    delete:
+      description: Soft deletes a notification for the authenticated user.
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid notification id
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "404":
+          description: Notification not found
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Delete notification
+      tags:
+      - Notification
+  /api/v1/notifications/{id}/read:
+    patch:
+      description: Marks a notification as read.
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Invalid notification id
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "404":
+          description: Notification not found
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "422":
+          description: Validation error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Mark notification read
+      tags:
+      - Notification
+  /api/v1/notifications/read-all:
+    post:
+      description: Marks all notifications as read for the authenticated user.
+      responses:
+        "204":
+          description: No Content
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/router.errorResponse'
+      summary: Mark all notifications read
+      tags:
+      - Notification
+schemes:
+- http
+- https
+swagger: "2.0"
