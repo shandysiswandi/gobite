@@ -1,0 +1,479 @@
+# =============================================================================
+# Global Application Settings
+# =============================================================================
+app:
+  # Timezone used across the application
+  tz: "Asia/Jakarta"
+
+  # Base URL of the frontend application
+  web: "http://localhost:3330"
+
+  # HTTP Server Configuration
+  server:
+    # Small service (256MB RAM, 0.5 CPU): 100-500
+    # Medium service (1GB RAM, 2 CPU): 1000-4000
+    # Large service (4GB RAM, 4 CPU): 4000-16000
+    max_goroutine: 1000
+
+    cors: "http://localhost:3330,http://localhost:3331,http://localhost:3332"
+
+    # SSE bind address and port
+    # 0.0.0.0 allows access from outside the container/host
+    sse:
+      address: "localhost:8081"
+      # SSE server timeout settings (in seconds)
+      read_header_timeout_seconds: 2
+
+    http:
+      # HTTP bind address and port
+      # 0.0.0.0 allows access from outside the container/host
+      address: "localhost:8080"
+      # HTTP server timeout settings (in seconds)
+      read_timeout_seconds: 5
+      read_header_timeout_seconds: 2
+      write_timeout_seconds: 10
+      idle_timeout_seconds: 30
+
+  # Maintenance Configuration
+  maintenance:
+    # Comma-separated list of route templates to block.
+    # Use route templates such as /api/users/:id (not /api/users/1).
+    endpoints: "/api/users/:id"
+
+# =============================================================================
+# Observability / Instrumentation Configuration
+# =============================================================================
+instrument:
+  # Deployment/target environment label used to tag telemetry (e.g., resource attribute).
+  # Helps filter/group traces/metrics by environment.
+  # Expected values: local, dev, stg, prd
+  env: "local"
+
+  # OpenTelemetry "service.name" resource attribute.
+  # This is the primary identifier shown in most APM/trace UIs.
+  service_name: "GOBITE"
+
+  # OpenTelemetry "service.version" resource attribute.
+  # Typically the app release/version (e.g., git tag, semver like v1.2.3),
+  # or an environment tag while developing. Useful for comparing behavior across releases.
+  service_version: "dev"
+
+  # OTLP (OpenTelemetry Protocol) collector endpoint (host:port).
+  # Common defaults:
+  # - gRPC: 4317  (as used here)
+  # - HTTP: 4318  (if your exporter uses HTTP/proto or HTTP/json)
+  otlp_endpoint: "localhost:4317"
+
+  # Controls transport security for OTLP.
+  # false  = do not use TLS (plaintext). Common for local/dev.
+  # true = use TLS (recommended for staging/production).
+  otlp_secure: false
+
+  # Trace sampling ratio for head-based sampling.
+  # 1.0 = sample 100% of traces (high volume; good for local debugging)
+  # 0.1 = sample ~10% of traces (lower cost/noise)
+  # Typical production values depend on traffic and budget.
+  trace_sample_ratio: 1.0
+
+  # Metric export/collection interval in seconds.
+  # Smaller values = fresher metrics but more overhead/volume.
+  # Larger values = less overhead but coarser granularity.
+  metric_interval_seconds: 10
+
+  # List of sensitive fields to be masked in logs
+  # Any occurrence of these keys will be replaced with "***"
+  # Helps prevent credential leakage in logs
+  log_mask_fields: >
+    password,
+    new_password,
+    current_password,
+    access_token,
+    refresh_token,
+    authorization,
+    cookie,
+    challenge_token,
+    recovery_codes
+
+# =============================================================================
+# Database Configuration
+# =============================================================================
+database:
+  # Database connection URL
+  # Format:
+  # driver://user:password@host:port/database?query=string
+  url: "postgres://user:password@localhost:5432/gobite?sslmode=disable"
+  # Connection pool tuning (0 = driver default)
+  pool:
+    max_conns: 10
+    min_conns: 2
+    max_conn_lifetime_seconds: 1800
+    max_conn_idle_seconds: 300
+    health_check_period_seconds: 60
+
+# =============================================================================
+# Redis Configuration
+# =============================================================================
+redis:
+  # Redis connection URL
+  # Format:
+  # redis://[user]:[password]@[host]:[port]/[db]
+  url: "redis://localhost:6379/1"
+
+# =============================================================================
+# Mail (SMTP) Configuration
+# =============================================================================
+mail:
+  # SMTP server hostname
+  host: localhost
+
+  # SMTP server port
+  port: 1025
+
+  # SMTP authentication username
+  username: user
+
+  # SMTP authentication password
+  password: password
+
+  # Default "from" address for outgoing emails
+  from: no-replay@gobite.com
+
+# =============================================================================
+# Object Storage Configuration
+# =============================================================================
+storage:
+  # Storage backend to use
+  # Supported values: s3 | gcs | minio
+  driver: s3
+
+  # ---------------------------------------------------------------------------
+  # S3 Configuration (AWS S3 or S3-compatible)
+  # ---------------------------------------------------------------------------
+  s3:
+    region: us-east-1
+    endpoint: ""
+    access_key: ""
+    secret_key: ""
+    session_token: ""
+    use_path_style: false
+
+  # ---------------------------------------------------------------------------
+  # GCS Configuration
+  # ---------------------------------------------------------------------------
+  gcs:
+    without_auth: false
+    credentials_file: ""
+    credentials_json: ""
+    endpoint: ""
+    user_agent: ""
+    signer_access_id: ""
+    # Base64-encoded service account private key for signed URLs
+    signer_private_key: ""
+
+  # ---------------------------------------------------------------------------
+  # MinIO Configuration
+  # ---------------------------------------------------------------------------
+  minio:
+    endpoint: "localhost:9000"
+    access_key: "minioadmin"
+    secret_key: "minioadmin"
+    session_token: ""
+    region: ""
+    use_ssl: false
+
+# =============================================================================
+# Messaging / Event System Configuration
+# =============================================================================
+messaging:
+  # Messaging backend to use
+  # Supported values: nsq | kafka | nats | pubsub
+  driver: nsq
+
+  # ---------------------------------------------------------------------------
+  # NSQ Configuration
+  # ---------------------------------------------------------------------------
+  nsq:
+    # nsqd TCP address used by producers
+    producer_addr: "localhost:4150"
+
+    # Direct nsqd addresses for consumers (local/dev)
+    consumer_nsqd_addrs: "localhost:4150"
+
+    # nsqlookupd addresses for service discovery (recommended in prod)
+    consumer_lookupd_addrs: "localhost:4161"
+
+    producer_config:
+      # Maximum number of in-flight messages
+      max_in_flight: 50
+
+      # Connection timeout (seconds)
+      dial_timeout_seconds: 5
+
+      # Read timeout (seconds)
+      read_timeout_seconds: 60
+
+      # Write timeout (seconds)
+      write_timeout_seconds: 60
+
+    consumer_config:
+      # Maximum number of messages processed concurrently
+      max_in_flight: 100
+
+      # Maximum processing attempts before message is discarded
+      max_attempts: 5
+
+      # Poll interval for nsqlookupd (seconds)
+      lookupd_poll_interval_seconds: 60
+
+      # TCP dial timeout (seconds)
+      dial_timeout_seconds: 1
+
+      # TCP read timeout (seconds)
+      read_timeout_seconds: 60
+
+      # TCP write timeout (seconds)
+      write_timeout_seconds: 1
+
+      # Default delay before requeueing failed messages (seconds)
+      default_requeue_delay_seconds: 90
+
+      # Maximum requeue delay (seconds)
+      max_requeue_delay_seconds: 900
+
+  # ---------------------------------------------------------------------------
+  # Kafka Configuration
+  # ---------------------------------------------------------------------------
+  kafka:
+    # Kafka broker list (comma-separated)
+    brokers: "localhost:9092"
+
+    # TCP dial timeout (seconds)
+    dial_timeout: 10
+
+    writer_config:
+      # Maximum retry attempts
+      max_attempts: 10
+
+      # Batch size in number of messages
+      batch_size: 100
+
+      # Maximum batch size in bytes
+      batch_bytes: 1048576
+
+      # Batch flush timeout (seconds)
+      batch_timeout: 1
+
+      # Required acknowledgements:
+      # -1 = all replicas
+      required_acks: -1
+
+      # Async mode (fire-and-forget)
+      async: false
+
+      # Read timeout (seconds)
+      read_timeout: 10
+
+      # Write timeout (seconds)
+      write_timeout: 10
+
+    reader_config:
+      # Internal message queue size
+      queue_capacity: 100
+
+      # Minimum fetch size (bytes)
+      min_bytes: 1
+
+      # Maximum fetch size (bytes)
+      max_bytes: 10000000
+
+      # Maximum wait time for fetch (seconds)
+      max_wait: 10
+
+      # Read batch timeout (seconds)
+      read_batch_timeout: 10
+
+      # Connection retry attempts
+      max_attempts: 3
+
+      # Watch partition changes
+      watch_partition_changes: false
+
+      # Partition check interval (seconds)
+      partition_watch_interval: 5
+
+      # Consumer group session timeout (seconds)
+      session_timeout: 30
+
+      # Rebalance timeout (seconds)
+      rebalance_timeout: 30
+
+      # Heartbeat interval (seconds)
+      heartbeat_interval: 3
+
+      # Backoff before rejoin (seconds)
+      join_group_backoff: 5
+
+      # Offset retention time (seconds)
+      retention_time: -1
+
+      # Start offset:
+      # -2 = earliest
+      # -1 = latest
+      start_offset: -2
+
+      # Read backoff minimum (seconds)
+      read_backoff_min: 0
+
+      # Read backoff maximum (seconds)
+      read_backoff_max: 0
+
+  # ---------------------------------------------------------------------------
+  # NATS Configuration
+  # ---------------------------------------------------------------------------
+  nats:
+    # NATS server URL
+    url: "nats://localhost:4222"
+
+    # Client name
+    name: "gobite"
+
+    # Connection timeout (seconds)
+    timeout_seconds: 10
+
+    # Maximum reconnect attempts
+    max_reconnects: 60
+
+    # Wait time between reconnects (seconds)
+    reconnect_wait_seconds: 2
+
+    # Ping interval (seconds)
+    ping_interval_seconds: 30
+
+    # Max unanswered pings
+    max_pings_outstanding: 2
+
+    # Disable receiving own published messages
+    no_echo: false
+
+    # Retry connection on failure
+    retry_on_failed_connect: true
+
+  # ---------------------------------------------------------------------------
+  # Google Cloud Pub/Sub Configuration
+  # ---------------------------------------------------------------------------
+  pubsub:
+    # GCP project ID
+    project_id: "my-gcp-project"
+
+    # Pub/Sub emulator host (local dev)
+    emulator_host: ""
+
+    # Custom API endpoint
+    endpoint: ""
+
+    # Custom user-agent
+    user_agent: ""
+
+    # Disable authentication (emulator only)
+    without_auth: false
+
+    # Service account JSON file path
+    credentials_file: ""
+
+    # Base64-encoded service account JSON
+    credentials_json: ""
+
+# =============================================================================
+# JWT (Authentication Token) Configuration
+# =============================================================================
+jwt:
+  # Base64-encoded 64-byte secret key
+  # Generate with: openssl rand -base64 64
+  # MUST be rotated regularly in production
+  secret: "your-super-secret-64-byte-long-session-key-for-testing"
+
+  # Token issuer identifier
+  issuer: "gobite"
+
+  # Allowed audiences (comma-separated)
+  audiences: "WEB,MOBILE"
+
+  # Access token expiration time (minutes)
+  ttl_minutes: 5
+
+# =============================================================================
+# Hashing & Cryptography Configuration
+# =============================================================================
+hash:
+  hmac:
+    # Secret key for HMAC signing
+    secret: "secret"
+
+  argon2id:
+    # Pepper added to password before hashing
+    pepper: "secret"
+
+  bcrypt:
+    # Cost factor (higher = slower & more secure)
+    cost: 12
+
+    # Pepper added to password before hashing
+    pepper: "secret"
+
+# =============================================================================
+# Multi-Factor Authentication (MFA)
+# =============================================================================
+mfa:
+  # Base64-encoded 32-byte secret
+  # Generate with: openssl rand -base64 32
+  secret: "Gttpmh8mX3MJCgimbmYn1K4qshhY/JpEB2MSe4M85UY="
+
+  totp:
+    # Issuer name shown in authenticator apps
+    issuer: "GOBITE"
+
+    # TOTP validity period (seconds)
+    period: 30
+
+    # Allowed clock skew (number of steps)
+    skew: 1
+
+# =============================================================================
+# Feature Modules Configuration
+# =============================================================================
+modules:
+  identity:
+    # Enable authentication module
+    enabled: true
+
+    # MFA login code expiration (minutes)
+    mfa_login_ttl_minutes: 5
+
+    # MFA setup confirmation expiration (minutes)
+    mfa_setup_confirm_ttl_minutes: 3
+
+    # Registration activation expiration (hours)
+    registration_ttl_hours: 3
+
+    # Password reset token expiration (hours)
+    password_reset_ttl_hours: 3
+
+    # Refresh token expiration (days)
+    refresh_token_ttl_days: 7
+
+    # Avatar upload configuration
+    # avatar_bucket: storage bucket name used for avatar files
+    # avatar_base_url: base URL for serving avatars (should already include bucket path if needed)
+    # avatar_max_size_bytes: maximum allowed upload size in bytes
+    avatar_bucket: "gobite-assets"
+    avatar_base_url: "https://cdn.example.com"
+    avatar_max_size_bytes: 2621440 # 2.5MB
+
+  notification:
+    # Enable notification module
+    enabled: true
+
+    # Messaging consumer identifiers
+    consumer_names: >
+      user_registration_notification,
+      user_forgot_password_notification
