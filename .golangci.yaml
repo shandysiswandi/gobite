@@ -1,0 +1,208 @@
+version: "2"
+# golangci configuration
+run:
+  # timeout for analysis, e.g. 30s, 5m, default is 1m
+  timeout: 5m
+  # include test files or not, default is true
+  tests: false
+  # by default isn't set. If set we pass it to "go list -mod={option}". From "go help modules":
+  # If invoked with -mod=readonly, the go command is disallowed from the implicit
+  # automatic updating of go.mod described above. Instead, it fails when any changes
+  # to go.mod are needed. This setting is most useful to check that go.mod does
+  # not need updates, such as in a continuous integration and testing system.
+  # If invoked with -mod=vendor, the go command assumes that the vendor
+  # directory holds the correct copies of dependencies and ignores
+  # the dependency descriptions in go.mod.
+  modules-download-mode: readonly
+  # Allow multiple parallel golangci-lint instances running.
+  # If false (default) - golangci-lint acquires file lock on start.
+  allow-parallel-runners: true
+
+# output configuration options
+output:
+  # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
+
+  formats:
+    tab:
+      path: stdout
+      print-linter-name: true
+      colors: true
+
+linters:
+  # please, do not use `enable-all`: it's deprecated and will be removed soon.
+  # inverted configuration with `enable-all` and `disable` is not scalable during updates of golangci-lint
+  default: standard
+  enable:
+    # level 0
+    - bidichk
+    - bodyclose
+    - errcheck
+    - errorlint
+    - exhaustive
+    - copyloopvar
+    - gosec
+    - govet
+    - nilerr
+    - nolintlint
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    # level 1
+    - asasalint
+    - cyclop
+    - durationcheck
+    - forcetypeassert
+    - gocognit
+    - gocyclo
+    - ineffassign
+    - makezero
+    - mirror
+    - noctx
+    - prealloc
+    - reassign
+    - unconvert
+    - unparam
+    - unused
+    - wastedassign
+    # level 2
+    # will be enabled on go v1.21 to use context.WithoutCancel()
+    - contextcheck
+    - dogsled
+    - dupl
+    - errchkjson
+    - forbidigo
+    - gochecknoglobals
+    - gochecknoinits
+    - goconst
+    - gocritic
+    - godox
+    - err113
+    - gomodguard
+    - revive
+    - usestdlibvars
+    # level 3
+    - errname
+    - gocheckcompilerdirectives
+    - gomoddirectives
+    - grouper
+    - importas
+    # - lll
+    - loggercheck
+    - nakedret
+    - nosprintfhostport
+    - paralleltest
+    - thelper
+    - tparallel
+
+    #disable:
+    # - asciicheck
+    # - containedctx
+    # # - depguard
+    # - decorder
+    # - dupword
+    # - execinquery
+    # # - exhaustruct
+    # - funlen
+    # - ginkgolinter
+    # - gochecknoglobals
+    # - godot
+    # - gofumpt
+    # - goheader
+    # # - gomnd
+    # - goprintffuncname
+    # - gosmopolitan
+    # - interfacebloat
+    # # - ireturn
+    # - maintidx
+    # - misspell
+    # - musttag
+    # - nestif
+    # # - nilnil
+    # - nlreturn
+    # - nonamedreturns
+    # - predeclared
+    # - promlinter
+    # # - tagalign
+    # - tagliatelle
+    # - testableexamples
+    # - testpackage
+    # # - varnamelen
+    # - whitespace
+    # # - wrapcheck
+    # # - wsl
+    # - zerologlint
+
+    #deprecated:
+    #- deadcode
+    #- exhaustivestruct
+    #- golint
+    #- ifshort
+    #- interfacer
+    #- maligned
+    #- nosnakecase
+    #- scopelint
+    #- structcheck
+    #- varcheck
+
+  # all available settings of specific linters
+  settings:
+    cyclop:
+      # minimal code complexity to report, 30 by default (but we recommend 10-20)
+      max-complexity: 20
+
+    errcheck:
+      # report about not checking of errors in type assertions: `a := b.(MyStruct)`;
+      # default is false: such cases aren't reported by default.
+      check-type-assertions: true
+
+      # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
+      # default is false: such cases aren't reported by default.
+      check-blank: true
+
+    exhaustive:
+      # indicates that switch statements are to be considered exhaustive if a
+      # 'default' case is present, even if all enum members aren't listed in the
+      # switch
+      default-signifies-exhaustive: true
+
+    gocognit:
+      # minimal code complexity to report, 30 by default (but we recommend 10-20)
+      min-complexity: 20
+
+    gocyclo:
+      # minimal code complexity to report, 30 by default (but we recommend 10-20)
+      min-complexity: 20
+
+    revive:
+      enable-all-rules: false
+      rules:
+        - name: exported
+          disabled: true
+
+    nolintlint:
+      # Enable to require an explanation of nonzero length after each nolint directive. Default is false.
+      require-explanation: true
+      # Enable to require nolint directives to mention the specific linter being suppressed. Default is false.
+      require-specific: true
+
+    gosec:
+      excludes:
+        # - G101
+        # - G601
+        # - G108
+        - G115
+
+    rowserrcheck:
+      packages:
+        - github.com/jmoiron/sqlx
+
+    tagliatelle:
+      # Check the struck tag name case.
+      case:
+        # Use the struct field name to check the name of the struct tag.
+        # Default: false
+        use-field-name: false
+        rules:
+          # Any struct tag type can be used.
+          # Support string case: `camel`, `pascal`, `kebab`, `snake`, `upperSnake`, `goCamel`, `goPascal`, `goKebab`, `goSnake`, `upper`, `lower`, `header`.
+          json: snake

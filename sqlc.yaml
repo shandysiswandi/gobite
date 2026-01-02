@@ -1,0 +1,87 @@
+version: "2"
+
+sql:
+  - engine: "postgresql"
+    queries: "database/queries"
+    schema: "database/migrations"
+
+    gen:
+      go:
+        package: "sqlc"
+        out: "internal/pkg/sqlc"
+        sql_package: "pgx/v5"
+
+        overrides:
+          # Identity
+          - column: "identity_challenges.metadata"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
+              type: "JSONMap"
+
+          - column: "identity_refresh_tokens.metadata"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
+              type: "JSONMap"
+
+          - column: "identity_users.status"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/identity/entity"
+              package: "identity_entity"
+              type: "UserStatus"
+
+          - column: "identity_challenges.purpose"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/identity/entity"
+              package: "identity_entity"
+              type: "ChallengePurpose"
+
+          - column: "identity_mfa_factors.type"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/identity/entity"
+              package: "identity_entity"
+              type: "MFAType"
+
+          # Notifications
+          - column: "notification_delivery_logs.provider_response"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
+              type: "JSONMap"
+
+          - column: "notifications.data"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
+              type: "JSONMap"
+
+          - column: "notifications.metadata"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/pkg/valueobject"
+              package: "vo"
+              type: "JSONMap"
+
+          - column: "notification_user_settings.channel"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "Channel"
+
+          - column: "notification_templates.channel"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "Channel"
+
+          - column: "notification_delivery_logs.channel"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "Channel"
+
+          - column: "notification_delivery_logs.status"
+            go_type:
+              import: "github.com/shandysiswandi/gobite/internal/notification/entity"
+              package: "notif_entity"
+              type: "DeliveryStatus"
