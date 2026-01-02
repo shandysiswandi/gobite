@@ -1,0 +1,59 @@
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  log_level: info
+
+common:
+  path_prefix: /loki
+
+  ring:
+    kvstore:
+      store: inmemory
+
+  replication_factor: 1
+
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+
+# ----
+# Modern schema: TSDB (required for structured metadata + native OTLP ingestion)
+# ----
+schema_config:
+  configs:
+    - from: 2025-01-01
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+# TSDB shipper directories
+storage_config:
+  tsdb_shipper:
+    active_index_directory: /loki/tsdb-index
+    cache_location: /loki/tsdb-cache
+
+# ----
+# Limits + retention
+# ----
+limits_config:
+  allow_structured_metadata: true
+  retention_period: 168h # 7 days (dev/CI friendly)
+  reject_old_samples: true
+  reject_old_samples_max_age: 168h
+
+# ----
+# Compactor: needed for retention with TSDB
+# ----
+compactor:
+  working_directory: /loki/compactor
+  compaction_interval: 5m
+  retention_enabled: true
+  delete_request_store: filesystem
+
+analytics:
+  reporting_enabled: false
