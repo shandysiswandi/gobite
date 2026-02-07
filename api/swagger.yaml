@@ -751,6 +751,99 @@ paths:
       tags:
       - Identity
       - Profile Security
+  /api/v1/identity/oauth/{provider}/callback:
+    get:
+      description: Exchanges code for tokens and redirects back to the frontend.
+      parameters:
+      - description: OAuth provider
+        in: path
+        name: provider
+        required: true
+        schema:
+          type: string
+      - description: Authorization code
+        in: query
+        name: code
+        required: true
+        schema:
+          type: string
+      - description: OAuth state
+        in: query
+        name: state
+        required: true
+        schema:
+          type: string
+      responses:
+        "302":
+          description: Redirect to frontend
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/router.errorResponse'
+          description: Invalid request
+        "401":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/router.errorResponse'
+          description: Unauthorized
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/router.errorResponse'
+          description: OAuth not configured
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/router.errorResponse'
+          description: Internal server error
+      summary: OAuth callback
+      tags:
+      - Identity
+      - Authentication
+  /api/v1/identity/oauth/{provider}/start:
+    get:
+      description: Redirects to the provider authorization URL.
+      parameters:
+      - description: OAuth provider
+        in: path
+        name: provider
+        required: true
+        schema:
+          type: string
+      - description: Frontend redirect path
+        in: query
+        name: redirect
+        schema:
+          type: string
+      responses:
+        "302":
+          description: Redirect to provider
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/router.errorResponse'
+          description: Invalid request
+        "403":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/router.errorResponse'
+          description: OAuth not configured
+        "500":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/router.errorResponse'
+          description: Internal server error
+      summary: Start OAuth login
+      tags:
+      - Identity
+      - Authentication
   /api/v1/identity/password/change:
     post:
       description: Updates the user's password after validating the current password.

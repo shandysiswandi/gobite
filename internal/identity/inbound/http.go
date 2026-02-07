@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/shandysiswandi/gobite/internal/identity/usecase"
+	"github.com/shandysiswandi/gobite/internal/pkg/config"
 	"github.com/shandysiswandi/gobite/internal/pkg/router"
 )
 
@@ -11,6 +12,8 @@ type uc interface {
 	Login(ctx context.Context, in usecase.LoginInput) (*usecase.LoginOutput, error)
 	Login2FA(ctx context.Context, in usecase.Login2FAInput) (*usecase.Login2FAOutput, error)
 	RefreshToken(ctx context.Context, in usecase.RefreshTokenInput) (*usecase.RefreshTokenOutput, error)
+	OAuthStart(ctx context.Context, in usecase.OAuthStartInput) (*usecase.OAuthStartOutput, error)
+	OAuthCallback(ctx context.Context, in usecase.OAuthCallbackInput) (*usecase.OAuthCallbackOutput, error)
 
 	Register(ctx context.Context, in usecase.RegisterInput) error
 	RegisterResend(ctx context.Context, in usecase.RegisterResendInput) error
@@ -42,13 +45,15 @@ type uc interface {
 	BackupCode(ctx context.Context, in usecase.BackupCodeInput) (*usecase.BackupCodeOutput, error)
 }
 
-func RegisterHTTPEndpoint(r *router.Router, uc uc) {
-	end := &HTTPEndpoint{uc: uc}
+func RegisterHTTPEndpoint(r *router.Router, uc uc, cfg config.Config) {
+	end := &HTTPEndpoint{uc: uc, cfg: cfg}
 
 	// Auth & User Management
 	r.POST("/api/v1/identity/login", end.Login)
 	r.POST("/api/v1/identity/login/2fa", end.Login2FA)
 	r.POST("/api/v1/identity/refresh", end.RefreshToken)
+	r.GET("/api/v1/identity/oauth/:provider/login", end.OAuthStart)
+	r.GET("/api/v1/identity/oauth/:provider/callback", end.OAuthCallback)
 	//
 	r.POST("/api/v1/identity/register", end.Register)
 	r.POST("/api/v1/identity/register/resend", end.RegisterResend)

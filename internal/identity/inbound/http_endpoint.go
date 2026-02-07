@@ -2,21 +2,94 @@ package inbound
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
+	"github.com/julienschmidt/httprouter"
 	"github.com/shandysiswandi/gobite/internal/identity/entity"
 	"github.com/shandysiswandi/gobite/internal/identity/usecase"
+	"github.com/shandysiswandi/gobite/internal/pkg/config"
 	"github.com/shandysiswandi/gobite/internal/pkg/goerror"
 	"github.com/shandysiswandi/gobite/internal/pkg/router"
+	"github.com/shandysiswandi/gobite/internal/pkg/validator"
 )
 
 // HTTPEndpoint exposes HTTP handlers for authentication and profile workflows.
 type HTTPEndpoint struct {
-	uc uc
+	uc  uc
+	cfg config.Config
+}
+
+func (h *HTTPEndpoint) OAuthStart(r *router.Request) (any, error) {
+	provider := r.GetParam("provider")
+	redirectPath := r.GetQuery("redirect")
+
+	resp, err := h.uc.OAuthStart(r.Context(), usecase.OAuthStartInput{
+		Provider:     provider,
+		RedirectPath: redirectPath,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return OAuthStartResponse{URL: resp.AuthURL}, nil
+}
+
+// OAuthCallback handles OAuth provider callbacks and redirects to the frontend.
+// @Summary OAuth callback
+// @Description Exchanges code for tokens and redirects back to the frontend.
+// @Tags Identity, Authentication
+// @Param provider path string true "OAuth provider"
+// @Param code query string true "Authorization code"
+// @Param state query string true "OAuth state"
+// @Success 302 "Redirect to frontend"
+// @Failure 400 {object} router.errorResponse "Invalid request"
+// @Failure 401 {object} router.errorResponse "Unauthorized"
+// @Failure 403 {object} router.errorResponse "OAuth not configured"
+// @Failure 500 {object} router.errorResponse "Internal server error"
+// @Router /api/v1/identity/oauth/{provider}/callback [get]
+func (h *HTTPEndpoint) OAuthCallback(w http.ResponseWriter, r *http.Request) {
+	provider := httprouter.ParamsFromContext(r.Context()).ByName("provider")
+	code := strings.TrimSpace(r.URL.Query().Get("code"))
+	state := strings.TrimSpace(r.URL.Query().Get("state"))
+
+	resp, err := h.uc.OAuthCallback(r.Context(), usecase.OAuthCallbackInput{
+		Provider: provider,
+		Code:     code,
+		State:    state,
+	})
+	if err != nil {
+		redirectPath := ""
+		if resp != nil {
+			redirectPath = resp.RedirectPath
+		}
+		redirectURL := buildFrontendRedirect(h.cfg.GetString("app.web"), redirectPath, map[string]string{
+			"error": errorMessage(err),
+		})
+		http.Redirect(w, r, redirectURL, http.StatusFound)
+		return
+	}
+
+	fragment := map[string]string{}
+	if resp.MfaRequired {
+		fragment["mfa_required"] = "true"
+		fragment["challenge_token"] = resp.ChallengeToken
+		if len(resp.AvailableMethods) > 0 {
+			fragment["available_methods"] = strings.Join(resp.AvailableMethods, ",")
+		}
+	} else {
+		fragment["access_token"] = resp.AccessToken
+		fragment["refresh_token"] = resp.RefreshToken
+	}
+
+	redirectURL := buildFrontendRedirect(h.cfg.GetString("app.web"), resp.RedirectPath, fragment)
+	http.Redirect(w, r, redirectURL, http.StatusFound)
 }
 
 // Login authenticates a user and returns tokens or an MFA challenge.
@@ -53,6 +126,81 @@ func (h *HTTPEndpoint) Login(r *router.Request) (any, error) {
 		ChallengeToken:   resp.ChallengeToken,
 		AvailableMethods: resp.AvailableMethods,
 	}, nil
+}
+
+type errorResponse struct {
+	Message string            `json:"message"`
+	Error   map[string]string `json:"error,omitempty"`
+}
+
+func writeErrorResponse(w http.ResponseWriter, err error) {
+	resp := errorResponse{Message: "Internal server error"}
+	status := http.StatusInternalServerError
+
+	var gerr *goerror.Error
+	if errors.As(err, &gerr) {
+		resp.Message = gerr.Msg()
+		status = gerr.StatusCode()
+
+		var errValidate validator.V10ValidationError
+		if errors.As(err, &errValidate) {
+			resp.Error = errValidate.Values()
+		} else if len(gerr.Fields()) > 0 {
+			resp.Error = gerr.Fields()
+		}
+	}
+
+	writeJSON(w, resp, status)
+}
+
+func writeJSON(w http.ResponseWriter, data any, code int) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.WriteHeader(code)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		slog.Error("server: failed to encode data to json", "error", err)
+	}
+}
+
+func buildFrontendRedirect(baseURL, path string, fragment map[string]string) string {
+	if strings.TrimSpace(path) == "" {
+		path = "/oauth/callback"
+	}
+	if !strings.HasPrefix(path, "/") {
+		path = "/" + path
+	}
+
+	base := strings.TrimSpace(baseURL)
+	if base == "" {
+		base = "/"
+	}
+	base = strings.TrimRight(base, "/")
+
+	target := base + path
+	if len(fragment) == 0 {
+		return target
+	}
+
+	vals := url.Values{}
+	for key, value := range fragment {
+		if strings.TrimSpace(value) == "" {
+			continue
+		}
+		vals.Set(key, value)
+	}
+	if len(vals) == 0 {
+		return target
+	}
+
+	return target + "#" + vals.Encode()
+}
+
+func errorMessage(err error) string {
+	var gerr *goerror.Error
+	if errors.As(err, &gerr) && gerr.Msg() != "" {
+		return gerr.Msg()
+	}
+	return "OAuth login failed"
 }
 
 // Login2FA completes an 2FA login challenge and issues tokens.

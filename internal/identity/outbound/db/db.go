@@ -70,3 +70,11 @@ func (s *DB) DeleteChallenge(ctx context.Context, id int64) (err error) {
 	err = s.mapError(s.query.DeleteIdentityChallengeByID(ctx, id))
 	return err
 }
+
+func (s *DB) DeleteOAuthState(ctx context.Context, id int64) (err error) {
+	ctx, span := s.startSpan(ctx, "DeleteOAuthState")
+	defer func() { s.endSpan(span, err) }()
+
+	err = s.mapError(s.query.DeleteIdentityOAuthStateByID(ctx, id))
+	return err
+}

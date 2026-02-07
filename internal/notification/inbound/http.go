@@ -21,5 +21,5 @@ func RegisterHTTPEndpoint(r *router.Router, uc uc) {
 	r.PUT("/api/v1/notification/inbox/read-all", end.MarkAllInboxRead)
 	r.DELETE("/api/v1/notification/inbox/:id", end.DeleteInbox)
 
-	r.GETRaw("/api/v1/notification/stream", http.HandlerFunc(end.StreamNotifications))
+	r.Handler(http.MethodGet, "/api/v1/notification/stream", http.HandlerFunc(end.StreamNotifications))
 }

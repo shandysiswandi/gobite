@@ -115,6 +115,32 @@ func (q *Queries) CreateIdentityMFAFactor(ctx context.Context, arg CreateIdentit
 	return err
 }
 
+const createIdentityOAuthState = `-- name: CreateIdentityOAuthState :exec
+INSERT INTO identity_oauth_states (id, state, provider, code_verifier, redirect_path, expires_at)
+VALUES ($1, $2, $3, $4, $5, $6)
+`
+
+type CreateIdentityOAuthStateParams struct {
+	ID           int64
+	State        string
+	Provider     string
+	CodeVerifier string
+	RedirectPath string
+	ExpiresAt    pgtype.Timestamptz
+}
+
+func (q *Queries) CreateIdentityOAuthState(ctx context.Context, arg CreateIdentityOAuthStateParams) error {
+	_, err := q.db.Exec(ctx, createIdentityOAuthState,
+		arg.ID,
+		arg.State,
+		arg.Provider,
+		arg.CodeVerifier,
+		arg.RedirectPath,
+		arg.ExpiresAt,
+	)
+	return err
+}
+
 const createIdentityRefreshToken = `-- name: CreateIdentityRefreshToken :exec
 
 INSERT INTO identity_refresh_tokens (id, user_id, token, expires_at, metadata) 
@@ -171,6 +197,28 @@ func (q *Queries) CreateIdentityUser(ctx context.Context, arg CreateIdentityUser
 	return err
 }
 
+const createIdentityUserConnection = `-- name: CreateIdentityUserConnection :exec
+INSERT INTO identity_user_connections (id, user_id, provider, provider_user_id)
+VALUES ($1, $2, $3, $4)
+`
+
+type CreateIdentityUserConnectionParams struct {
+	ID             int64
+	UserID         int64
+	Provider       string
+	ProviderUserID string
+}
+
+func (q *Queries) CreateIdentityUserConnection(ctx context.Context, arg CreateIdentityUserConnectionParams) error {
+	_, err := q.db.Exec(ctx, createIdentityUserConnection,
+		arg.ID,
+		arg.UserID,
+		arg.Provider,
+		arg.ProviderUserID,
+	)
+	return err
+}
+
 const createIdentityUserCredential = `-- name: CreateIdentityUserCredential :exec
 INSERT INTO identity_user_credentials (user_id, password)
 VALUES ($1, $2)
@@ -219,6 +267,15 @@ DELETE FROM identity_mfa_backup_codes WHERE user_id = $1
 
 func (q *Queries) DeleteIdentityMFABackupCodeByUserID(ctx context.Context, userID int64) error {
 	_, err := q.db.Exec(ctx, deleteIdentityMFABackupCodeByUserID, userID)
+	return err
+}
+
+const deleteIdentityOAuthStateByID = `-- name: DeleteIdentityOAuthStateByID :exec
+DELETE FROM identity_oauth_states WHERE id = $1
+`
+
+func (q *Queries) DeleteIdentityOAuthStateByID(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteIdentityOAuthStateByID, id)
 	return err
 }
 
@@ -397,6 +454,37 @@ func (q *Queries) GetIdentityMFAFactorByUserID(ctx context.Context, arg GetIdent
 	return items, nil
 }
 
+const getIdentityOAuthStateByState = `-- name: GetIdentityOAuthStateByState :one
+SELECT id, state, provider, code_verifier, redirect_path, expires_at
+FROM identity_oauth_states
+WHERE
+    state = $1
+    AND expires_at > NOW()
+`
+
+type GetIdentityOAuthStateByStateRow struct {
+	ID           int64
+	State        string
+	Provider     string
+	CodeVerifier string
+	RedirectPath string
+	ExpiresAt    pgtype.Timestamptz
+}
+
+func (q *Queries) GetIdentityOAuthStateByState(ctx context.Context, state string) (GetIdentityOAuthStateByStateRow, error) {
+	row := q.db.QueryRow(ctx, getIdentityOAuthStateByState, state)
+	var i GetIdentityOAuthStateByStateRow
+	err := row.Scan(
+		&i.ID,
+		&i.State,
+		&i.Provider,
+		&i.CodeVerifier,
+		&i.RedirectPath,
+		&i.ExpiresAt,
+	)
+	return i, err
+}
+
 const getIdentityUserByEmail = `-- name: GetIdentityUserByEmail :one
 SELECT id, email, full_name, avatar_url, status 
 FROM identity_users 
@@ -556,6 +644,38 @@ func (q *Queries) GetIdentityUserByIDIncludeDeleted(ctx context.Context, id int6
 		&i.Status,
 		&i.UpdatedAt,
 		&i.DeletedAt,
+	)
+	return i, err
+}
+
+const getIdentityUserConnectionByProviderUserID = `-- name: GetIdentityUserConnectionByProviderUserID :one
+SELECT id, user_id, provider, provider_user_id
+FROM identity_user_connections
+WHERE
+    provider = $1
+    AND provider_user_id = $2
+`
+
+type GetIdentityUserConnectionByProviderUserIDParams struct {
+	Provider       string
+	ProviderUserID string
+}
+
+type GetIdentityUserConnectionByProviderUserIDRow struct {
+	ID             int64
+	UserID         int64
+	Provider       string
+	ProviderUserID string
+}
+
+func (q *Queries) GetIdentityUserConnectionByProviderUserID(ctx context.Context, arg GetIdentityUserConnectionByProviderUserIDParams) (GetIdentityUserConnectionByProviderUserIDRow, error) {
+	row := q.db.QueryRow(ctx, getIdentityUserConnectionByProviderUserID, arg.Provider, arg.ProviderUserID)
+	var i GetIdentityUserConnectionByProviderUserIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Provider,
+		&i.ProviderUserID,
 	)
 	return i, err
 }

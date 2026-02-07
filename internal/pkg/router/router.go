@@ -130,8 +130,10 @@ func NewRouter(cfg Config) *Router {
 
 	publicEndpoints := map[string]map[string]struct{}{
 		http.MethodGet: {
-			"/":       {},
-			"/health": {},
+			"/":                                      {},
+			"/health":                                {},
+			"/api/v1/identity/oauth/:provider/start": {},
+			"/api/v1/identity/oauth/:provider/callback": {},
 		},
 		http.MethodPost: {
 			"/api/v1/identity/login":           {},
@@ -166,9 +168,9 @@ func (r *Router) GET(path string, h Handler, mws ...Middleware) {
 	r.endpoint(http.MethodGet, path, h, mws...)
 }
 
-// GETRaw registers a GET endpoint that writes directly to the response writer.
-func (r *Router) GETRaw(path string, h http.Handler, mws ...Middleware) {
-	r.hr.Handler(http.MethodGet, path, Chain(h, append(r.mws, mws...)...))
+// Handler registers a endpoint that writes directly to the response writer.
+func (r *Router) Handler(method, path string, h http.Handler, mws ...Middleware) {
+	r.hr.Handler(method, path, Chain(h, append(r.mws, mws...)...))
 }
 
 // POST registers a POST endpoint using the application Handler signature.

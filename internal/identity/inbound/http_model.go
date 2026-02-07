@@ -19,6 +19,10 @@ type LoginResponse struct {
 	RefreshToken     string   `json:"refresh_token,omitempty"`
 }
 
+type OAuthStartResponse struct {
+	URL string `json:"url"`
+}
+
 type RegisterRequest struct {
 	Captcha  string `json:"captcha"`
 	Email    string `json:"email"`

@@ -90,6 +90,20 @@ FROM identity_users
 WHERE
     id = @id;
 
+-- name: GetIdentityUserConnectionByProviderUserID :one
+SELECT id, user_id, provider, provider_user_id
+FROM identity_user_connections
+WHERE
+    provider = @provider
+    AND provider_user_id = @provider_user_id;
+
+-- name: GetIdentityOAuthStateByState :one
+SELECT id, state, provider, code_verifier, redirect_path, expires_at
+FROM identity_oauth_states
+WHERE
+    state = @state
+    AND expires_at > NOW();
+
 -- name: GetIdentityUserFilter :many
 SELECT id, email, full_name, avatar_url, status, updated_at
 FROM identity_users
@@ -157,6 +171,14 @@ VALUES (@id, @email, @full_name, @avatar_url, @status, @created_by, @updated_by)
 -- name: CreateIdentityUserCredential :exec
 INSERT INTO identity_user_credentials (user_id, password)
 VALUES (@user_id, @password);
+
+-- name: CreateIdentityUserConnection :exec
+INSERT INTO identity_user_connections (id, user_id, provider, provider_user_id)
+VALUES (@id, @user_id, @provider, @provider_user_id);
+
+-- name: CreateIdentityOAuthState :exec
+INSERT INTO identity_oauth_states (id, state, provider, code_verifier, redirect_path, expires_at)
+VALUES (@id, @state, @provider, @code_verifier, @redirect_path, @expires_at);
 
 -- name: CreateIdentityMFABackupCodes :copyfrom
 INSERT INTO identity_mfa_backup_codes (id, user_id, code)
@@ -277,6 +299,9 @@ DELETE FROM identity_challenges WHERE id = @id;
 
 -- name: DeleteIdentityChallengesByUserPurpose :exec
 DELETE FROM identity_challenges WHERE user_id = @user_id AND purpose = @purpose;
+
+-- name: DeleteIdentityOAuthStateByID :exec
+DELETE FROM identity_oauth_states WHERE id = @id;
 
 -- name: DeleteIdentityMFABackupCodeByUserID :exec
 DELETE FROM identity_mfa_backup_codes WHERE user_id = @user_id;

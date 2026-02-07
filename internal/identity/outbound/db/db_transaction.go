@@ -150,6 +150,57 @@ func (s *DB) NewUser(ctx context.Context, user entity.NewUser, hash string) (err
 	return nil
 }
 
+func (s *DB) NewOAuthUser(ctx context.Context, user entity.NewUser, hash string, conn entity.UserConnection) (err error) {
+	ctx, span := s.startSpan(ctx, "NewOAuthUser")
+	defer func() { s.endSpan(span, err) }()
+
+	tx, err := s.conn.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if rErr := tx.Rollback(ctx); rErr != nil && !errors.Is(rErr, pgx.ErrTxClosed) {
+			slog.ErrorContext(ctx, "failed to rolback", "error", rErr)
+		}
+	}()
+
+	wtx := s.query.WithTx(tx)
+
+	if err := wtx.CreateIdentityUser(ctx, sqlc.CreateIdentityUserParams{
+		ID:        user.ID,
+		Email:     user.Email,
+		FullName:  user.FullName,
+		AvatarUrl: user.AvatarURL,
+		Status:    user.Status,
+		CreatedBy: user.CreatedBy,
+		UpdatedBy: user.UpdatedBy,
+	}); err != nil {
+		return s.mapError(err)
+	}
+
+	if err := wtx.CreateIdentityUserCredential(ctx, sqlc.CreateIdentityUserCredentialParams{
+		UserID:   user.ID,
+		Password: hash,
+	}); err != nil {
+		return s.mapError(err)
+	}
+
+	if err := wtx.CreateIdentityUserConnection(ctx, sqlc.CreateIdentityUserConnectionParams{
+		ID:             conn.ID,
+		UserID:         conn.UserID,
+		Provider:       conn.Provider,
+		ProviderUserID: conn.ProviderUserID,
+	}); err != nil {
+		return s.mapError(err)
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		return s.mapError(err)
+	}
+
+	return nil
+}
+
 func (s *DB) UpsertUsers(ctx context.Context, users []entity.UpsertUser, hashes map[string]string) (created, updated int, err error) {
 	ctx, span := s.startSpan(ctx, "UpsertUsers")
 	defer func() { s.endSpan(span, err) }()

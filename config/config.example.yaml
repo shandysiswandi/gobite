@@ -8,6 +8,9 @@ app:
   # Base URL of the frontend application
   web: "http://localhost:3333"
 
+  # Base URL of the API application
+  api_base_url: "http://localhost:8080"
+
   # HTTP Server Configuration
   server:
     # Small service (256MB RAM, 0.5 CPU): 100-500
@@ -469,6 +472,27 @@ modules:
 
     # Refresh token expiration (days)
     refresh_token_ttl_days: 7
+
+    # OAuth configuration
+    oauth:
+      enabled: true
+      state_ttl_minutes: 10
+      providers:
+        google:
+          client_id: ""
+          client_secret: ""
+          auth_url: "https://accounts.google.com/o/oauth2/v2/auth"
+          token_url: "https://oauth2.googleapis.com/token"
+          userinfo_url: "https://openidconnect.googleapis.com/v1/userinfo"
+          scopes: "openid,email,profile"
+        github:
+          client_id: ""
+          client_secret: ""
+          auth_url: "https://github.com/login/oauth/authorize"
+          token_url: "https://github.com/login/oauth/access_token"
+          userinfo_url: "https://api.github.com/user"
+          user_email_url: "https://api.github.com/user/emails"
+          scopes: "read:user,user:email"
 
     # Avatar upload configuration
     # avatar_bucket: storage bucket name used for avatar files

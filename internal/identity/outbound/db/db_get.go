@@ -309,3 +309,42 @@ func (s *DB) GetUserByID(ctx context.Context, id int64, includeDeleted bool) (_ 
 
 	return item, nil
 }
+
+func (s *DB) GetUserConnectionByProviderUserID(ctx context.Context, provider, providerUserID string) (_ *entity.UserConnection, err error) {
+	ctx, span := s.startSpan(ctx, "GetUserConnectionByProviderUserID")
+	defer func() { s.endSpan(span, err) }()
+
+	result, err := s.query.GetIdentityUserConnectionByProviderUserID(ctx, sqlc.GetIdentityUserConnectionByProviderUserIDParams{
+		Provider:       provider,
+		ProviderUserID: providerUserID,
+	})
+	if err != nil {
+		return nil, s.mapError(err)
+	}
+
+	return &entity.UserConnection{
+		ID:             result.ID,
+		UserID:         result.UserID,
+		Provider:       result.Provider,
+		ProviderUserID: result.ProviderUserID,
+	}, nil
+}
+
+func (s *DB) GetOAuthState(ctx context.Context, state string) (_ *entity.OAuthState, err error) {
+	ctx, span := s.startSpan(ctx, "GetOAuthState")
+	defer func() { s.endSpan(span, err) }()
+
+	result, err := s.query.GetIdentityOAuthStateByState(ctx, state)
+	if err != nil {
+		return nil, s.mapError(err)
+	}
+
+	return &entity.OAuthState{
+		ID:           result.ID,
+		State:        result.State,
+		Provider:     result.Provider,
+		CodeVerifier: result.CodeVerifier,
+		RedirectPath: result.RedirectPath,
+		ExpiresAt:    result.ExpiresAt.Time,
+	}, nil
+}

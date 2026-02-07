@@ -36,3 +36,31 @@ func (s *DB) CreateRefreshToken(ctx context.Context, in entity.RefreshToken) (er
 	}))
 	return err
 }
+
+func (s *DB) CreateUserConnection(ctx context.Context, in entity.UserConnection) (err error) {
+	ctx, span := s.startSpan(ctx, "CreateUserConnection")
+	defer func() { s.endSpan(span, err) }()
+
+	err = s.mapError(s.query.CreateIdentityUserConnection(ctx, sqlc.CreateIdentityUserConnectionParams{
+		ID:             in.ID,
+		UserID:         in.UserID,
+		Provider:       in.Provider,
+		ProviderUserID: in.ProviderUserID,
+	}))
+	return err
+}
+
+func (s *DB) CreateOAuthState(ctx context.Context, in entity.OAuthState) (err error) {
+	ctx, span := s.startSpan(ctx, "CreateOAuthState")
+	defer func() { s.endSpan(span, err) }()
+
+	err = s.mapError(s.query.CreateIdentityOAuthState(ctx, sqlc.CreateIdentityOAuthStateParams{
+		ID:           in.ID,
+		State:        in.State,
+		Provider:     in.Provider,
+		CodeVerifier: in.CodeVerifier,
+		RedirectPath: in.RedirectPath,
+		ExpiresAt:    pgtype.Timestamptz{Valid: true, Time: in.ExpiresAt},
+	}))
+	return err
+}

@@ -6,6 +6,7 @@ import (
 
 	"github.com/casbin/casbin/v3"
 	"github.com/shandysiswandi/gobite/internal/identity/entity"
+	"github.com/shandysiswandi/gobite/internal/identity/outbound/oauth"
 	"github.com/shandysiswandi/gobite/internal/pkg/clock"
 	"github.com/shandysiswandi/gobite/internal/pkg/cloudflare"
 	"github.com/shandysiswandi/gobite/internal/pkg/config"
@@ -52,10 +53,14 @@ type repoDB interface {
 	GetMFAFactorByUserID(ctx context.Context, userID int64, isVerified bool) ([]entity.MFAFactor, error)
 	GetMFAFactorByID(ctx context.Context, id int64, userID int64) (*entity.MFAFactor, error)
 	GetMFABackupCodeByUserID(ctx context.Context, userID int64) ([]entity.MFABackupCode, error)
+	GetUserConnectionByProviderUserID(ctx context.Context, provider, providerUserID string) (*entity.UserConnection, error)
+	GetOAuthState(ctx context.Context, state string) (*entity.OAuthState, error)
 
 	CreateRefreshToken(ctx context.Context, in entity.RefreshToken) error
 	CreateChallenge(ctx context.Context, in entity.Challenge) error
 	ReplaceChallenge(ctx context.Context, in entity.Challenge) error
+	CreateUserConnection(ctx context.Context, in entity.UserConnection) error
+	CreateOAuthState(ctx context.Context, in entity.OAuthState) error
 
 	RevokeRefreshToken(ctx context.Context, token string) error
 	RevokeAllRefreshToken(ctx context.Context, userID int64) error
@@ -72,6 +77,7 @@ type repoDB interface {
 	NewRegistration(ctx context.Context, user entity.NewUser, chal entity.Challenge, hash string) error
 	NewBackupCodes(ctx context.Context, userID int64, codes []entity.MFABackupCode, factor *entity.MFAFactor) error
 	NewUser(ctx context.Context, user entity.NewUser, hash string) error
+	NewOAuthUser(ctx context.Context, user entity.NewUser, hash string, conn entity.UserConnection) error
 	UpsertUsers(ctx context.Context, users []entity.UpsertUser, hashes map[string]string) (created, updated int, err error)
 	PatchUser(ctx context.Context, user entity.PatchUser, hash string) error
 	VerifyUserRegistration(ctx context.Context, data entity.VerifyUserRegistration) error
@@ -80,6 +86,7 @@ type repoDB interface {
 	RotateRefreshToken(ctx context.Context, ro entity.RotateRefreshToken) error
 
 	DeleteChallenge(ctx context.Context, id int64) error
+	DeleteOAuthState(ctx context.Context, id int64) error
 }
 
 type Usecase struct {
@@ -104,6 +111,7 @@ type Usecase struct {
 	enforcer        *casbin.Enforcer
 	goroutine       *goroutine.Manager
 	turnstile       cloudflare.Turnstile
+	oauth           *oauth.Service
 }
 
 type Dependency struct {
@@ -153,6 +161,15 @@ func New(dep Dependency) *Usecase {
 		enforcer:        dep.Enforcer,
 		goroutine:       dep.Goroutine,
 		turnstile:       dep.Turnstile,
+		oauth: oauth.NewService(oauth.Dependency{
+			Repo:      dep.RepoDB,
+			Validator: dep.Validator,
+			Config:    dep.Config,
+			HMAC:      dep.HMAC,
+			UID:       dep.UID,
+			OID:       dep.OID,
+			Clock:     dep.Clock,
+		}),
 	}
 }
 

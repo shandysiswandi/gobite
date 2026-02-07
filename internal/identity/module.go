@@ -83,7 +83,7 @@ func New(dep Dependency) error {
 		Turnstile:       dep.Turnstile,
 	})
 
-	inbound.RegisterHTTPEndpoint(dep.Router, uc)
+	inbound.RegisterHTTPEndpoint(dep.Router, uc, dep.Config)
 
 	return nil
 }

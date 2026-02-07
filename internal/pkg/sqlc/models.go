@@ -53,6 +53,16 @@ type IdentityMfaFactor struct {
 	UpdatedAt    pgtype.Timestamptz
 }
 
+type IdentityOauthState struct {
+	ID           int64
+	State        string
+	Provider     string
+	CodeVerifier string
+	RedirectPath string
+	ExpiresAt    pgtype.Timestamptz
+	CreatedAt    pgtype.Timestamptz
+}
+
 type IdentityRefreshToken struct {
 	ID                int64
 	UserID            int64
