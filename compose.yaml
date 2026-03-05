@@ -61,23 +61,32 @@ services:
   # ===== ===== =====
   # Storage
   # ===== ===== =====
-  minio:
-    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+  rustfs:
+    image: rustfs/rustfs:1.0.0-alpha.85
     pull_policy: missing
     restart: unless-stopped
-    command: server /data --console-address ":9001"
     ports:
       - "127.0.0.1:9000:9000" # API Server
       - "127.0.0.1:9001:9001" # Web UI
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-user}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-password}
+      RUSTFS_VOLUMES: /data
+      RUSTFS_ADDRESS: 0.0.0.0:9000
+      RUSTFS_CONSOLE_ADDRESS: 0.0.0.0:9001
+      RUSTFS_CONSOLE_ENABLE: true
+      RUSTFS_ACCESS_KEY: ${RUSTFS_ACCESS_KEY:-user}
+      RUSTFS_SECRET_KEY: ${RUSTFS_SECRET_KEY:-password}
     volumes:
-      - minio_gobite_data:/data
+      - rustfs_gobite_data:/data
     networks:
       - gobite-network
     healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:9000/minio/health/live"]
+      test:
+        [
+          "CMD",
+          "sh",
+          "-c",
+          "curl -f http://localhost:9000/health && curl -f http://localhost:9001/rustfs/console/health",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -231,7 +240,7 @@ volumes:
   postgres_gobite_data:
   redis_gobite_data:
   nsq_gobite_data:
-  minio_gobite_data:
+  rustfs_gobite_data:
   nats_gobite_data:
   loki_gobite_data:
   grafana_gobite_data:

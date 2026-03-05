@@ -44,7 +44,7 @@ cp config/config.example.yaml config/config.yaml
 ```
 2) Start dependencies:
 ```bash
-docker compose up --wait
+podman-compose up -d
 ```
 3) Run migrations and seeds:
 ```bash
@@ -94,10 +94,10 @@ curl -X POST http://localhost:8080/api/v1/identity/register \
   -d '{"email":"user@example.com","full_name":"User Example","password":"P@ssw0rd!"}'
 ```
 
-## Docker Usage
+## Podman Usage
 This repo ships a `compose.yaml` with local dependencies (Postgres, Redis, Mailpit, MinIO, NSQ, NATS, Tempo/Prometheus/Loki, OTEL collector, Grafana):
 ```bash
-docker compose up --wait
+podman-compose up -d
 ```
 There is no backend container in the compose file; run the Go service locally.
 MinIO defaults to `MINIO_ROOT_USER=user` and `MINIO_ROOT_PASSWORD=password`; align `storage.minio.*` in `config/config.yaml` if you use MinIO locally.

@@ -25,8 +25,8 @@ help:
 ## ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
 
 restart: ## Restart local stack and refresh generated assets.
-	@docker compose down -v
-	@docker compose up --wait
+	@podman-compose down -v
+	@podman-compose up
 	@$(MAKE) migrate-up
 	@$(MAKE) seed-up
 	@$(MAKE) gen-sql
@@ -79,14 +79,14 @@ seed-down: ## Roll back the most recent seed script.
 	@goose -dir database/seeds -table "goose_seed_db_version" postgres "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}?sslmode=disable" down
 
 ## ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
-## Docker
+## Podman
 ## ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
 
-compose-up: ## Start the docker compose stack.
-	@docker compose up --wait
+compose-up: ## Start the podman compose stack.
+	@podman-compose up -d
 
-compose-down: ## Stop the docker compose stack.
-	@docker compose down
+compose-down: ## Stop the podman compose stack.
+	@podman-compose down
 
 ## ***** ***** ***** ***** ***** ***** ***** ***** ***** *****
 ## Generator
